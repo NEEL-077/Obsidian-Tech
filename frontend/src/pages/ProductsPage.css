@@ -1,0 +1,268 @@
+/* ============================================================
+   Products Hub Page — Brand Cards
+   ============================================================ */
+
+.products-hub {
+    min-height: 100vh;
+    background: #09090b;
+    padding-bottom: 4rem;
+}
+
+/* ── Hub Hero ─────────────────────────────────────────────── */
+.hub-hero {
+    text-align: center;
+    padding: 3.5rem 1rem 2.5rem;
+    background: #18181b;
+    position: relative;
+    overflow: hidden;
+}
+
+.hub-hero::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background:
+        radial-gradient(ellipse at 20% 50%, rgba(102, 252, 241, 0.15) 0%, transparent 60%),
+        radial-gradient(ellipse at 80% 50%, rgba(99, 102, 241, 0.15) 0%, transparent 60%);
+}
+
+.hub-title {
+    position: relative;
+    font-size: 3rem;
+    font-weight: 900;
+    color: #ffffff;
+    margin: 0 0 0.5rem;
+    letter-spacing: -1px;
+}
+
+.hub-subtitle {
+    position: relative;
+    color: rgba(255,255,255,0.6);
+    font-size: 1.1rem;
+    margin: 0;
+}
+
+/* ── Container ────────────────────────────────────────────── */
+.hub-container {
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 2.5rem 1.5rem;
+}
+
+/* ── Brand Card Grid ──────────────────────────────────────── */
+.brand-card-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 1.75rem;
+}
+
+/* ── Brand Card ───────────────────────────────────────────── */
+.brand-card {
+    position: relative;
+    border-radius: 16px;
+    overflow: hidden;
+    text-decoration: none;
+    color: #FAFAFA;
+    display: flex;
+    flex-direction: column;
+    min-height: 320px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 12px rgba(16, 44, 87, 0.04);
+    background: #18181b;
+    border: 1px solid #27272a;
+}
+
+.brand-card:hover {
+    transform: translateY(-8px);
+    box-shadow: 0 12px 32px rgba(16, 44, 87, 0.08);
+    border-color: #0ea5e9;
+}
+
+.brand-card-bg {
+    position: absolute;
+    inset: 0;
+    background: var(--brand-bg);
+    z-index: 0;
+}
+
+/* Phone image area */
+.brand-card-image {
+    position: relative;
+    z-index: 1;
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 1.5rem 1.5rem 0.5rem;
+    min-height: 160px;
+}
+
+.brand-card-image img {
+    max-width: 110px;
+    max-height: 140px;
+    object-fit: contain;
+    filter: drop-shadow(0 8px 20px rgba(0,0,0,0.4));
+    transition: transform 0.4s ease;
+}
+
+.brand-card:hover .brand-card-image img {
+    transform: translateY(-6px) scale(1.05);
+}
+
+.brand-card-emoji {
+    font-size: 5rem;
+    filter: drop-shadow(0 4px 12px rgba(0,0,0,0.3));
+    transition: transform 0.4s ease;
+}
+
+.brand-card:hover .brand-card-emoji {
+    transform: translateY(-6px) scale(1.1);
+}
+
+/* Logo display */
+.brand-logo-wrap {
+    width: 130px;
+    height: 130px;
+    border-radius: 50%;
+    background: rgba(39, 39, 42, 0.95);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 8px 28px rgba(0,0,0,0.25);
+    transition: transform 0.4s ease, box-shadow 0.4s ease;
+    padding: 18px;
+    box-sizing: border-box;
+}
+
+.brand-card:hover .brand-logo-wrap {
+    transform: translateY(-8px) scale(1.06);
+    box-shadow: 0 16px 40px rgba(0,0,0,0.35);
+}
+
+.brand-logo-img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    display: block;
+}
+
+
+/* Card body */
+.brand-card-body {
+    position: relative;
+    z-index: 1;
+    padding: 1rem 1.5rem 1.5rem;
+}
+
+.brand-card-emoji-sm {
+    font-size: 1.4rem;
+    margin-bottom: 0.3rem;
+    display: block;
+}
+
+.brand-logo-sm {
+    width: 32px;
+    height: 32px;
+    margin-bottom: 0.3rem;
+    background: #27272a;
+    border-radius: 8px;
+    padding: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.brand-logo-sm img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+}
+
+.brand-card-name {
+    font-size: 1.6rem;
+    font-weight: 800;
+    margin: 0 0 0.2rem;
+    letter-spacing: -0.5px;
+}
+
+.brand-card-tagline {
+    font-size: 0.82rem;
+    opacity: 0.75;
+    margin: 0 0 0.75rem;
+    font-style: italic;
+}
+
+.brand-card-stats {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.82rem;
+    margin-bottom: 1rem;
+    opacity: 0.9;
+}
+
+.brand-stat { font-weight: 600; }
+.brand-divider { opacity: 0.5; }
+
+.brand-card-cta {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    background: #18181b;
+    color: white;
+    padding: 0.55rem 1.1rem;
+    border-radius: 999px;
+    font-size: 0.875rem;
+    font-weight: 700;
+    transition: all 0.2s ease;
+}
+
+.brand-card:hover .brand-card-cta {
+    background: #6366f1;
+    transform: translateX(4px);
+}
+
+/* ── States ───────────────────────────────────────────────── */
+.loading-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 5rem 2rem;
+    color: #a1a1aa;
+}
+
+.loading-spinner {
+    width: 44px;
+    height: 44px;
+    border: 4px solid #27272a;
+    border-top: 4px solid #0ea5e9;
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+    margin-bottom: 1rem;
+}
+
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}
+
+.error-state {
+    text-align: center;
+    padding: 4rem 2rem;
+}
+
+/* ── Responsive ───────────────────────────────────────────── */
+@media (max-width: 768px) {
+    .hub-title { font-size: 2.2rem; }
+    .brand-card-grid { grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 1.25rem; }
+}
+
+@media (max-width: 480px) {
+    .hub-title { font-size: 1.8rem; }
+    .brand-card-grid { grid-template-columns: 1fr 1fr; gap: 1rem; }
+    .brand-card { min-height: 260px; }
+    .brand-card-name { font-size: 1.2rem; }
+    .brand-card-image { min-height: 120px; }
+    .brand-card-image img { max-width: 80px; max-height: 100px; }
+}

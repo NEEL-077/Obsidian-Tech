@@ -1,0 +1,44 @@
+{
+  "name": "obsidian-tech-backend",
+  "version": "1.0.0",
+  "description": "Backend API for Obsidian Tech - AI-Integrated Mobile Store",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "nodemon server.js",
+    "build": "cd ../frontend && npm run build",
+    "install-all": "npm install && cd ../frontend && npm install",
+    "build-and-start": "npm run build && npm start",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [
+    "mobile",
+    "ecommerce",
+    "api",
+    "ai"
+  ],
+  "author": "",
+  "license": "MIT",
+  "type": "commonjs",
+  "dependencies": {
+    "@supabase/supabase-js": "^2.105.4",
+    "bcryptjs": "^3.0.3",
+    "cors": "^2.8.6",
+    "dotenv": "^17.3.1",
+    "express": "^4.19.2",
+    "express-session": "^1.19.0",
+    "jsonwebtoken": "^9.0.3",
+    "multer": "^2.1.1",
+    "nodemailer": "^8.0.2",
+    "passport": "^0.7.0",
+    "passport-google-oauth20": "^2.0.0",
+    "qrcode": "^1.5.4",
+    "socket.io": "^4.8.3",
+    "speakeasy": "^2.0.0"
+  },
+  "devDependencies": {
+    "eslint": "^10.0.0",
+    "nodemon": "^3.1.11",
+    "prettier": "^3.8.1"
+  }
+}

@@ -1,0 +1,101 @@
+/* ============================================
+   FEATURED PRODUCTS SECTION
+   ============================================ */
+
+.featured-products {
+    background: var(--background-color, #0A0A0F);
+    position: relative;
+    overflow: hidden;
+}
+
+/* Subtle ambient glow in the background */
+.featured-products::before {
+    content: '';
+    position: absolute;
+    top: -120px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 900px;
+    height: 500px;
+    background: radial-gradient(ellipse, rgba(201, 162, 74, 0.07) 0%, transparent 70%);
+    pointer-events: none;
+}
+
+/* Section subtitle */
+.section-subtitle {
+    text-align: center;
+    color: var(--text-secondary-color, #6B7280);
+    font-size: 1.05rem;
+    font-weight: 400;
+    margin-top: -2rem;
+    margin-bottom: 3rem;
+    max-width: 520px;
+    margin-left: auto;
+    margin-right: auto;
+    line-height: 1.6;
+}
+
+/* ---- Products Grid: always 4 columns, zero leftover space ---- */
+/* Scoped inside the wrapper to avoid conflicts with AdminPage.css */
+.featured-products-grid-wrapper .products-grid {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 1.25rem;
+    margin-bottom: 0;
+    width: 100%;
+    box-sizing: border-box;
+    max-height: none;
+    overflow-y: visible;
+    padding: 0;
+}
+
+/* Section footer — centred CTA */
+.section-footer {
+    display: flex;
+    justify-content: center;
+    margin-top: 2rem;
+}
+
+/* Full-width wrapper that breaks out of .container */
+.featured-products-grid-wrapper {
+    width: 100%;
+    padding: 0 2rem;
+    box-sizing: border-box;
+    margin-bottom: 1.5rem;
+}
+
+/* ============================================
+   RESPONSIVE BREAKPOINTS
+   ============================================ */
+
+/* Tablet landscape: 2 columns */
+@media (max-width: 1024px) {
+    .featured-products-grid-wrapper .products-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 1.25rem;
+    }
+}
+
+/* Tablet portrait: 2 columns tighter */
+@media (max-width: 768px) {
+    .featured-products-grid-wrapper .products-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 1rem;
+    }
+
+    .section-subtitle {
+        font-size: 0.95rem;
+    }
+
+    .featured-products-grid-wrapper {
+        padding: 0 1rem;
+    }
+}
+
+/* Mobile: single column */
+@media (max-width: 480px) {
+    .featured-products-grid-wrapper .products-grid {
+        grid-template-columns: 1fr;
+        gap: 1rem;
+    }
+}

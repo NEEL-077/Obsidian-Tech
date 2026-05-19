@@ -1,0 +1,287 @@
+/* Spotlight Search Overlay */
+.spotlight-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 9999;
+    background: rgba(0, 0, 0, 0.45);
+    backdrop-filter: blur(8px);
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+    padding-top: 10vh;
+    animation: fadeIn 0.15s ease-out;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+/* Main Modal Container */
+.spotlight-modal {
+    width: 100%;
+    max-width: 680px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 1.5rem;
+    animation: slideDown 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes slideDown {
+    from { opacity: 0; transform: translateY(-20px) scale(0.98); }
+    to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+/* 1. Quick Navigation Pills */
+.spotlight-quick-links {
+    display: flex;
+    gap: 0.8rem;
+    justify-content: center;
+    flex-wrap: wrap;
+}
+
+.spotlight-pill {
+    background: #1e1e24; /* dark gray like image */
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    width: 90px;
+    height: 80px;
+    border-radius: 16px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+
+.spotlight-pill:hover {
+    background: #2a2a32;
+    transform: translateY(-2px);
+    border-color: rgba(255, 255, 255, 0.15);
+}
+
+.spotlight-pill-icon {
+    font-size: 1.8rem;
+    margin-bottom: 0.2rem;
+    filter: drop-shadow(0 2px 4px rgba(0,0,0,0.3));
+}
+
+.spotlight-pill-name {
+    color: #a1a1aa;
+    font-size: 0.75rem;
+    font-weight: 600;
+    letter-spacing: 0.03em;
+}
+
+.spotlight-pill:hover .spotlight-pill-name {
+    color: #f4f4f5;
+}
+
+/* 2. Main Search Box Container */
+.spotlight-search-box {
+    width: 100%;
+    position: relative;
+    background: #18181b;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 16px;
+    display: flex;
+    align-items: center;
+    padding: 0 1.25rem;
+    box-shadow: 0 12px 32px rgba(0, 0, 0, 0.4);
+    transition: border-color 0.2s ease;
+}
+
+.spotlight-search-box:focus-within {
+    border-color: #0ea5e9;
+}
+
+.spotlight-search-icon {
+    color: #52525b;
+    flex-shrink: 0;
+    margin-right: 0.75rem;
+}
+
+.spotlight-search-box:focus-within .spotlight-search-icon {
+    color: #0ea5e9;
+}
+
+.spotlight-input {
+    flex: 1;
+    background: transparent;
+    border: none;
+    outline: none;
+    color: #f4f4f5;
+    font-size: 1.15rem;
+    padding: 1.2rem 0;
+    font-weight: 500;
+}
+
+.spotlight-input::placeholder {
+    color: #52525b;
+}
+
+.spotlight-esc-hint {
+    background: rgba(255, 255, 255, 0.08);
+    color: #a1a1aa;
+    font-size: 0.7rem;
+    padding: 0.2rem 0.4rem;
+    border-radius: 4px;
+    font-family: monospace;
+    font-weight: 600;
+    letter-spacing: 0.05em;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+/* 3. Suggestions Dropdown */
+.spotlight-results {
+    width: 100%;
+    background: #18181b;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 16px;
+    overflow: hidden;
+    box-shadow: 0 12px 32px rgba(0, 0, 0, 0.4);
+}
+
+.spotlight-status {
+    padding: 1.5rem;
+    text-align: center;
+    color: #a1a1aa;
+    font-size: 0.9rem;
+}
+
+.spotlight-list {
+    list-style: none;
+    margin: 0;
+    padding: 0.5rem;
+    max-height: 340px;
+    overflow-y: auto;
+}
+
+.spotlight-list::-webkit-scrollbar { width: 6px; }
+.spotlight-list::-webkit-scrollbar-track { background: transparent; }
+.spotlight-list::-webkit-scrollbar-thumb { background: #3f3f46; border-radius: 10px; }
+
+.spotlight-result-item {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    padding: 0.75rem 0.5rem;
+    background: transparent;
+    border: none;
+    border-radius: 10px;
+    cursor: pointer;
+    text-align: left;
+    transition: background 0.1s ease;
+}
+
+.spotlight-result-item:hover,
+.spotlight-result-item.highlighted {
+    background: rgba(255, 255, 255, 0.08);
+}
+
+.spotlight-result-img {
+    width: 44px;
+    height: 44px;
+    background: #27272a;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    flex-shrink: 0;
+}
+
+.spotlight-result-img img {
+    width: 32px;
+    height: 32px;
+    object-fit: contain;
+}
+
+.spotlight-result-img span {
+    font-size: 1.4rem;
+}
+
+.spotlight-result-info {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.1rem;
+}
+
+.spotlight-result-brand {
+    font-size: 0.65rem;
+    font-weight: 700;
+    color: #0ea5e9;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+}
+
+.spotlight-result-name {
+    font-size: 0.95rem;
+    font-weight: 500;
+    color: #e4e4e7;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.spotlight-result-price {
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: #a1a1aa;
+}
+
+.spotlight-result-arrow {
+    color: #52525b;
+    opacity: 0;
+    transition: transform 0.2s ease, opacity 0.2s ease;
+}
+
+.spotlight-result-item:hover .spotlight-result-arrow,
+.spotlight-result-item.highlighted .spotlight-result-arrow {
+    opacity: 1;
+    color: #0ea5e9;
+    transform: translateX(4px);
+}
+
+/* 4. Footer Hints */
+.spotlight-footer {
+    display: flex;
+    gap: 1.5rem;
+    align-items: center;
+    width: 100%;
+    padding: 0 1rem;
+    opacity: 0.7;
+}
+
+.spotlight-hint {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    color: #71717a;
+    font-size: 0.75rem;
+}
+
+.spotlight-hint kbd {
+    background: rgba(255, 255, 255, 0.08);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    color: #a1a1aa;
+    border-radius: 4px;
+    padding: 0.15rem 0.35rem;
+    font-family: inherit;
+    font-size: 0.7rem;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .spotlight-overlay { padding: 1rem; padding-top: 5vh; }
+    .spotlight-modal { position: relative; gap: 1rem; }
+    .spotlight-footer { justify-content: space-between; gap: 0.5rem; }
+    .spotlight-hint:nth-child(2) { display: none; } /* hide arrow hint on mobile */
+    .spotlight-pill { width: 70px; height: 65px; border-radius: 12px; }
+    .spotlight-pill-icon { font-size: 1.4rem; }
+}

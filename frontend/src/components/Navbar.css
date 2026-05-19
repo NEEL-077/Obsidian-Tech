@@ -1,0 +1,424 @@
+.navbar {
+    background: rgba(9, 9, 11, 0.75);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    box-shadow: 0 4px 24px rgba(0, 0, 0, 0.5);
+    position: sticky;
+    top: 0;
+    z-index: 1020;
+    border-bottom: 1px solid #27272a;
+    transition: padding 0.3s ease, box-shadow 0.3s ease;
+}
+
+/* Scroll-shrink state */
+.navbar--scrolled {
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.8);
+}
+
+.navbar--scrolled .navbar-content {
+    padding: 0.6rem 0;
+}
+
+.navbar-content {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 1rem 0;
+    gap: 2rem;
+    transition: padding 0.3s ease;
+}
+
+.logo-link {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    text-decoration: none;
+    transition: transform 0.3s ease;
+}
+
+.logo-link:hover {
+    transform: scale(1.02);
+}
+
+.navbar-logo {
+    height: 42px;
+    width: auto;
+    object-fit: contain;
+    filter: drop-shadow(0 2px 4px rgba(16, 44, 87, 0.1));
+}
+
+.brand-text {
+    display: flex;
+    flex-direction: column;
+    line-height: 1;
+}
+
+.brand-name {
+    font-size: 1.25rem;
+    font-weight: 800;
+    color: #FAFAFA;
+    letter-spacing: 0.05em;
+}
+
+.brand-tagline {
+    font-size: 0.6rem;
+    font-weight: 700;
+    color: #a1a1aa;
+    letter-spacing: 0.25em;
+    margin-top: 2px;
+}
+
+/* ==========================================
+   SEARCH BAR — Redesigned
+   ========================================== */
+.spotlight-trigger-wrapper {
+    flex: 1;
+    max-width: 420px;
+    position: relative;
+}
+
+.spotlight-trigger-btn {
+    display: flex;
+    align-items: center;
+    width: 100%;
+    background: #18181b;
+    border: 1px solid #27272a;
+    border-radius: 50px;
+    padding: 0.65rem 1.2rem;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
+}
+
+.spotlight-trigger-btn:focus {
+    outline: none;
+    border-color: #FAFAFA;
+    box-shadow: 0 0 0 3px rgba(102, 252, 241, 0.3);
+}
+
+.spotlight-trigger-btn:hover {
+    background: #27272a;
+    border-color: #66FCF1;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+}
+
+.search-icon-left {
+    color: #FAFAFA;
+    display: flex;
+    align-items: center;
+    flex-shrink: 0;
+    margin-right: 0.6rem;
+}
+
+.spotlight-trigger-text {
+    flex: 1;
+    text-align: left;
+    color: #a1a1aa;
+    font-size: 0.93rem;
+    font-family: inherit;
+    font-weight: 500;
+}
+
+.spotlight-shortcut kbd {
+    background: #27272a;
+    color: #FAFAFA;
+    border: 1px solid #66FCF1;
+    border-radius: 4px;
+    padding: 0.15rem 0.35rem;
+    font-family: monospace;
+    font-size: 0.7rem;
+    font-weight: 700;
+}
+
+
+/* Desktop Navigation — Tubelight Pill slot */
+.navbar-links {
+    display: flex;
+    align-items: center;
+    flex-shrink: 0;
+    /* Extra padding so the lamp glow above the pill is not clipped */
+    padding-top: 8px;
+    overflow: visible;
+}
+
+/* Mobile nav links still use these styles (in the drawer) */
+.nav-link {
+    font-weight: 600;
+    color: #FAFAFA;
+    transition: all 0.3s ease;
+    position: relative;
+    padding: 0.5rem 0;
+}
+
+.nav-link::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: 0;
+    height: 2px;
+    background: #66FCF1;
+    transition: width 0.3s ease;
+}
+
+.nav-link:hover {
+    color: #66FCF1;
+}
+
+.nav-link:hover::after,
+.nav-link.active::after {
+    width: 100%;
+}
+
+.nav-link.active {
+    color: #FAFAFA;
+    font-weight: 700;
+}
+
+/* Action Buttons */
+.navbar-actions {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    flex-shrink: 0;
+}
+
+.icon-btn {
+    background: transparent;
+    border: none;
+    color: var(--text-gray);
+    cursor: pointer;
+    padding: 0.5rem;
+    border-radius: var(--radius-sm);
+    transition: all var(--transition-fast);
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.icon-btn svg {
+    flex-shrink: 0;
+    vertical-align: middle;
+}
+
+.icon-btn:hover {
+    color: var(--primary-color);
+    background: var(--light-bg);
+}
+
+.cart-btn {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.cart-btn svg {
+    flex-shrink: 0;
+    vertical-align: middle;
+}
+
+.cart-badge {
+    position: absolute;
+    top: 0;
+    right: 0;
+    background: var(--secondary-gradient);
+    color: var(--text-light);
+    font-size: 0.65rem;
+    font-weight: 700;
+    padding: 0.15rem 0.4rem;
+    border-radius: var(--radius-full);
+    min-width: 18px;
+    text-align: center;
+}
+
+.user-menu {
+    display: flex;
+    align-items: center;
+}
+
+.user-name {
+    font-weight: 600;
+    color: var(--text-dark);
+}
+
+/* ==========================================
+   HAMBURGER BUTTON (mobile only)
+   ========================================== */
+.hamburger-btn {
+    display: none;
+    flex-direction: column;
+    justify-content: center;
+    gap: 5px;
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    padding: 6px;
+    border-radius: var(--radius-sm);
+    transition: background var(--transition-fast);
+}
+
+.hamburger-btn:hover {
+    background: var(--light-bg);
+}
+
+.hamburger-btn span {
+    display: block;
+    width: 22px;
+    height: 2px;
+    background: var(--text-dark);
+    border-radius: 2px;
+    transition: all var(--transition-base);
+    transform-origin: center;
+}
+
+.hamburger-btn.open span:nth-child(1) {
+    transform: translateY(7px) rotate(45deg);
+}
+
+.hamburger-btn.open span:nth-child(2) {
+    opacity: 0;
+    transform: scaleX(0);
+}
+
+.hamburger-btn.open span:nth-child(3) {
+    transform: translateY(-7px) rotate(-45deg);
+}
+
+/* ==========================================
+   MOBILE OVERLAY
+   ========================================== */
+.mobile-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.45);
+    backdrop-filter: blur(4px);
+    z-index: calc(var(--z-sticky) + 5);
+    animation: fadeIn 0.2s ease;
+}
+
+/* ==========================================
+   MOBILE MENU DRAWER
+   ========================================== */
+.mobile-menu {
+    position: fixed;
+    top: 0;
+    right: 0;
+    width: 280px;
+    height: 100vh;
+    background: var(--light-card);
+    z-index: calc(var(--z-sticky) + 10);
+    padding: 1.5rem;
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+    transform: translateX(110%);
+    transition: transform var(--transition-spring);
+    box-shadow: -8px 0 32px rgba(0, 0, 0, 0.15);
+    overflow-y: auto;
+}
+
+.mobile-menu--open {
+    transform: translateX(0);
+}
+
+.mobile-logo {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    font-weight: 800;
+    color: #FAFAFA;
+    font-size: 1.2rem;
+}
+
+.mobile-logo-img {
+    height: 32px;
+    width: auto;
+}
+
+.mobile-close-btn {
+    background: var(--light-bg);
+    border: none;
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    cursor: pointer;
+    font-size: 1rem;
+    color: var(--text-gray);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all var(--transition-fast);
+}
+
+.mobile-close-btn:hover {
+    background: var(--border-light);
+    color: var(--text-dark);
+}
+
+.mobile-nav {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.mobile-nav .nav-link {
+    display: block;
+    padding: 0.875rem 1rem;
+    border-radius: var(--radius-md);
+    font-size: 1.05rem;
+    font-weight: 500;
+    color: var(--text-dark);
+    transition: all var(--transition-fast);
+}
+
+.mobile-nav .nav-link::after {
+    display: none;
+}
+
+.mobile-nav .nav-link:hover,
+.mobile-nav .nav-link.active {
+    background: linear-gradient(135deg, rgba(102, 126, 234, 0.1) 0%, rgba(118, 75, 162, 0.1) 100%);
+    color: var(--primary-color);
+    transform: none;
+}
+
+/* ==========================================
+   RESPONSIVE
+   ========================================== */
+@media (max-width: 1024px) {
+    .navbar-links {
+        gap: 1.5rem;
+    }
+
+    .navbar-search {
+        max-width: 350px;
+    }
+}
+
+@media (max-width: 768px) {
+    .navbar-content {
+        flex-wrap: wrap;
+        gap: 0.75rem;
+    }
+
+    .navbar-search {
+        order: 3;
+        flex: 1 1 100%;
+        max-width: 100%;
+    }
+
+    /* Hide the tubelight pill on mobile — hamburger drawer takes over */
+    .navbar-links {
+        display: none !important;
+    }
+
+    .hamburger-btn {
+        display: flex;
+    }
+
+    .logo {
+        font-size: 1.25rem;
+    }
+}

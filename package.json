@@ -1,0 +1,27 @@
+{
+  "name": "obsidian-tech-app",
+  "version": "1.0.0",
+  "description": "Obsidian Tech - AI-Integrated Mobile Store (Full Stack)",
+  "main": "backend/server.js",
+  "scripts": {
+    "install": "cd backend && npm install && cd ../frontend && npm install",
+    "build": "cd frontend && npm run build",
+    "start": "cd backend && npm start",
+    "kill-ports": "npx -y kill-port 5000 5001",
+    "dev": "npm run kill-ports && concurrently --kill-others-on-fail \"cd backend && npm run dev\" \"cd frontend && npm run dev\"",
+    "build-and-start": "npm run build && npm start",
+    "clean": "rm -rf frontend/dist && rm -rf backend/node_modules && rm -rf frontend/node_modules"
+  },
+  "keywords": [
+    "mobile",
+    "ecommerce",
+    "react",
+    "express",
+    "ai"
+  ],
+  "author": "",
+  "license": "MIT",
+  "devDependencies": {
+    "concurrently": "^8.2.2"
+  }
+}
