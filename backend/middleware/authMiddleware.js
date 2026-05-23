@@ -14,9 +14,11 @@ const protect = async (req, res, next) => {
         try {
             token = req.headers.authorization.split(' ')[1];
             
-            // Check for custom mock tokens (dev bypasses)
+            // Check for custom mock or locally generated JWT tokens
             try {
                 const decoded = jwt.verify(token, process.env.JWT_SECRET);
+                
+                // 1. Admin bypass check
                 if (decoded.id === 'admin_bypass_001') {
                     req.user = {
                         _id: 'admin_bypass_001',
@@ -26,8 +28,25 @@ const protect = async (req, res, next) => {
                     };
                     return next();
                 }
+                
+                // 2. Normal locally generated JWT token check
+                const { data: publicUser } = await supabase
+                    .from('users')
+                    .select('*')
+                    .eq('id', decoded.id)
+                    .single();
+                
+                if (publicUser) {
+                    req.user = {
+                        _id: publicUser.id,
+                        name: publicUser.name,
+                        email: publicUser.email,
+                        isAdmin: publicUser.role === 'admin'
+                    };
+                    return next();
+                }
             } catch (jwtError) {
-                // Not a custom local JWT, likely a Supabase JWT. Proceed below.
+                // Not a custom local JWT, likely a Supabase JWT. Proceed to Supabase check.
             }
 
             // Verify with Supabase
@@ -37,7 +56,7 @@ const protect = async (req, res, next) => {
                 return res.status(401).json({ message: 'Not authorized, user not found' });
             }
 
-            // Fetch user role from public.users (optional, but good for isAdmin)
+            // Fetch user role from public.users
             const { data: publicUser } = await supabase
                 .from('users')
                 .select('*')

@@ -8,7 +8,9 @@ export default function HeroSection() {
   const [heroUrls, setHeroUrls] = useState({
     iphone: '/products',
     galaxy: '/products',
-    pixel: '/products'
+    pixel: '/products',
+    oneplus: '/products',
+    xiaomi: '/products'
   });
 
   useEffect(() => {
@@ -21,11 +23,15 @@ export default function HeroSection() {
         const iphone = products.find(p => p.name.includes('iPhone 17 Pro'));
         const galaxy = products.find(p => p.name.includes('Galaxy S26'));
         const pixel = products.find(p => p.name.includes('Pixel 10'));
+        const oneplus = products.find(p => p.name.includes('OnePlus 15'));
+        const xiaomi = products.find(p => p.name.includes('Xiaomi 17 Ultra'));
 
         setHeroUrls({
           iphone: iphone ? `/product/${iphone._id}` : '/products',
           galaxy: galaxy ? `/product/${galaxy._id}` : '/products',
-          pixel: pixel ? `/product/${pixel._id}` : '/products'
+          pixel: pixel ? `/product/${pixel._id}` : '/products',
+          oneplus: oneplus ? `/product/${oneplus._id}` : '/products',
+          xiaomi: xiaomi ? `/product/${xiaomi._id}` : '/products'
         });
       } catch (e) {
         console.error('Failed to fetch hero products', e);
@@ -196,7 +202,7 @@ export default function HeroSection() {
             <h4 className="bento-headline">OnePlus 15</h4>
             <p className="bento-subheadline">Smooth beyond belief.</p>
             <div className="hero-links">
-              <Link to="/product/b82a3b04-a90b-48c9-8d7b-99d985db6e04" className="apple-btn-primary" style={{ padding: '8px 16px', fontSize: '0.9rem' }}>Learn more</Link>
+              <Link to={heroUrls.oneplus} className="apple-btn-primary" style={{ padding: '8px 16px', fontSize: '0.9rem' }}>Learn more</Link>
             </div>
           </div>
           <div className="bento-image-wrapper">
@@ -210,7 +216,7 @@ export default function HeroSection() {
             <h4 className="bento-headline">Xiaomi 17 Ultra</h4>
             <p className="bento-subheadline">Photography redefined.</p>
             <div className="hero-links">
-              <Link to="/product/b82a3b04-a90b-48c9-8d7b-99d985db6e05" className="apple-btn-primary" style={{ padding: '8px 16px', fontSize: '0.9rem' }}>Learn more</Link>
+              <Link to={heroUrls.xiaomi} className="apple-btn-primary" style={{ padding: '8px 16px', fontSize: '0.9rem' }}>Learn more</Link>
             </div>
           </div>
           <div className="bento-image-wrapper">

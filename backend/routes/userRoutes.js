@@ -16,7 +16,8 @@ const {
     getUserWishlist,
     addRecentlyViewed,
     getRecentlyViewed,
-    verifyLogin2FA
+    verifyLogin2FA,
+    toggleUserVip
 } = require('../controllers/userController');
 const {
     setup2FA,
@@ -32,6 +33,9 @@ router
     .route('/profile')
     .get(protect, getUserProfile)
     .put(protect, updateUserProfile);
+
+// VIP management route
+router.route('/:id/vip').put(protect, admin, toggleUserVip);
 
 // Address management routes
 router.route('/addresses')
@@ -83,6 +87,7 @@ router.get('/auth/google/callback',
                 name: req.user.name,
                 email: req.user.email,
                 isAdmin: req.user.isAdmin,
+                isVip: req.user.is_vip || false,
                 token: token
             };
             

@@ -1,13 +1,15 @@
 import React, { useState } from 'react';
 import SEO from '../components/SEO';
+import { useToast } from '../context/ToastContext';
 import './ContactPage.css';
 
 const ContactPage = () => {
   const [formData, setFormData] = useState({ name: '', email: '', message: '' });
+  const { showToast } = useToast();
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    alert('Message sent successfully!');
+    showToast('Message sent successfully!', 'success');
     setFormData({ name: '', email: '', message: '' });
   };
 

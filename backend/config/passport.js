@@ -29,6 +29,7 @@ passport.use(
             name: existingUser.name,
             email: existingUser.email,
             isAdmin: existingUser.role === 'admin',
+            isVip: existingUser.is_vip || false,
           });
         }
 
@@ -67,6 +68,7 @@ passport.use(
           name: newUser.name,
           email: newUser.email,
           isAdmin: false,
+          isVip: newUser.is_vip || false,
         });
       } catch (error) {
         return done(error, false);
@@ -97,6 +99,7 @@ passport.deserializeUser(async (id, done) => {
       name: user.name,
       email: user.email,
       isAdmin: user.role === 'admin',
+      isVip: user.is_vip || false,
     });
   } catch (error) {
     done(error, false);

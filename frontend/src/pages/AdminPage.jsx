@@ -1,7 +1,27 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useSocket } from '../context/SocketContext';
+import { useToast } from '../context/ToastContext';
+import DashboardCharts from '../components/ui/DashboardCharts';
 import './AdminPage.css';
+
+const BRAND_LOGOS = {
+  Apple: '/logos/apple.png',
+  Samsung: '/logos/samsung.png',
+  OnePlus: '/logos/one-plus.png',
+  Google: '/logos/google.png',
+  Xiaomi: '/logos/xiaomi.png',
+  Motorola: '/logos/MOTOROLA.png'
+};
+
+const getBrandMeta = (brand) => {
+  const normalized = (brand || '').trim();
+  const matchedKey = Object.keys(BRAND_LOGOS).find(k => k.toLowerCase() === normalized.toLowerCase());
+  return {
+    logo: matchedKey ? BRAND_LOGOS[matchedKey] : null,
+    icon: '📱'
+  };
+};
 
 const ORDER_STATUSES = [
   { value: 'Pending', label: '🕐 Pending', color: '#f59e0b', bg: '#fef3c7' },
@@ -15,19 +35,29 @@ const ORDER_STATUSES = [
   { value: 'Refunded', label: '💰 Refunded', color: '#6366f1', bg: '#e0e7ff' },
 ];
 
-const OrderRow = ({ order, getAuthHeaders, onRefresh }) => {
+const OrderRow = ({ order, getAuthHeaders, onRefresh, onDelete }) => {
+  const userName = order.userName || order.user?.name || 'Valued Customer';
+  const userEmail = order.userEmail || order.user?.email || 'N/A';
+  const totalPrice = order.totalPrice !== undefined ? order.totalPrice : (order.total_price || 0);
+  const orderStatus = order.status || order.orderStatus || order.order_status || 'Pending';
+  const createdAt = order.createdAt || order.created_at || new Date().toISOString();
+  const isPaid = order.isPaid !== undefined ? order.isPaid : (order.is_paid || false);
+  const shippingAddress = order.shippingAddress || order.shipping_address || {};
+
   const [expanded, setExpanded] = React.useState(false);
-  const [selectedStatus, setSelectedStatus] = React.useState(order.status || 'Pending');
-  const [trackingNumber, setTrackingNumber] = React.useState(order.trackingNumber || '');
+  const [selectedStatus, setSelectedStatus] = React.useState(orderStatus);
+  const [trackingNumber, setTrackingNumber] = React.useState(order.trackingNumber || order.tracking_number || '');
   const [carrier, setCarrier] = React.useState(order.carrier || '');
   const [estimatedDelivery, setEstimatedDelivery] = React.useState(
-    order.estimatedDelivery ? new Date(order.estimatedDelivery).toISOString().split('T')[0] : ''
+    (order.estimatedDelivery || order.estimated_delivery) 
+      ? new Date(order.estimatedDelivery || order.estimated_delivery).toISOString().split('T')[0] 
+      : ''
   );
   const [note, setNote] = React.useState('');
   const [saving, setSaving] = React.useState(false);
   const [saveMsg, setSaveMsg] = React.useState('');
 
-  const statusInfo = ORDER_STATUSES.find(s => s.value === (order.status || 'Pending')) || ORDER_STATUSES[0];
+  const statusInfo = ORDER_STATUSES.find(s => s.value.toLowerCase() === orderStatus.toLowerCase()) || ORDER_STATUSES[0];
 
   const handleSave = async () => {
     setSaving(true);
@@ -68,18 +98,18 @@ const OrderRow = ({ order, getAuthHeaders, onRefresh }) => {
           </span>
         </td>
         <td>
-          <div style={{ fontWeight: '500' }}>{order.userName}</div>
-          <div style={{ fontSize: '12px', color: '#888' }}>{order.userEmail}</div>
+          <div style={{ fontWeight: '500' }}>{userName}</div>
+          <div style={{ fontSize: '12px', color: '#888' }}>{userEmail}</div>
         </td>
         <td style={{ color: '#aaa', fontSize: '13px' }}>{order.orderItems?.length} item(s)</td>
-        <td style={{ fontWeight: '600', color: '#e2e8f0' }}>₹{order.totalPrice?.toLocaleString('en-IN')}</td>
+        <td style={{ fontWeight: '600', color: '#e2e8f0' }}>₹{Number(totalPrice).toLocaleString('en-IN')}</td>
         <td>
           <span style={{
             padding: '3px 8px', borderRadius: '20px', fontSize: '12px', fontWeight: '600',
-            background: order.isPaid ? '#dcfce7' : '#fee2e2',
-            color: order.isPaid ? '#166534' : '#991b1b'
+            background: isPaid ? '#dcfce7' : '#fee2e2',
+            color: isPaid ? '#166534' : '#991b1b'
           }}>
-            {order.isPaid ? 'Paid' : 'Unpaid'}
+            {isPaid ? 'Paid' : 'Unpaid'}
           </span>
         </td>
         <td>
@@ -89,20 +119,36 @@ const OrderRow = ({ order, getAuthHeaders, onRefresh }) => {
             border: `1px solid ${statusInfo.color}33`,
             padding: '4px 10px', borderRadius: '20px', fontSize: '12px', fontWeight: '600'
           }}>
-            {order.status || 'Pending'}
+            {orderStatus}
           </span>
         </td>
         <td style={{ color: '#888', fontSize: '13px' }}>
-          {new Date(order.createdAt).toLocaleDateString('en-IN')}
+          {new Date(createdAt).toLocaleDateString('en-IN')}
         </td>
         <td className="text-right">
-          <button
-            className="btn-export"
-            style={{ padding: '5px 12px', fontSize: '12px' }}
-            onClick={e => { e.stopPropagation(); setExpanded(ex => !ex); }}
-          >
-            {expanded ? '▲ Close' : '▼ Manage'}
-          </button>
+          <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end', alignItems: 'center' }}>
+            <button
+              className="btn-export"
+              style={{ padding: '5px 12px', fontSize: '12px' }}
+              onClick={e => { e.stopPropagation(); setExpanded(ex => !ex); }}
+            >
+              {expanded ? '▲ Close' : '▼ Manage'}
+            </button>
+            <button
+              className="btn-export"
+              style={{ 
+                padding: '5px 12px', 
+                fontSize: '12px',
+                background: 'linear-gradient(135deg, #ef4444 0%, #b91c1c 100%)',
+                border: 'none',
+                color: '#ffffff',
+                fontWeight: '600'
+              }}
+              onClick={e => { e.stopPropagation(); onDelete(order._id || order.id); }}
+            >
+              🗑️ Delete
+            </button>
+          </div>
         </td>
       </tr>
 
@@ -117,7 +163,7 @@ const OrderRow = ({ order, getAuthHeaders, onRefresh }) => {
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px' }}>
                   {order.orderItems?.map((item, i) => (
                     <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '10px', background: '#1f2937', borderRadius: '8px', padding: '10px 14px', minWidth: '220px' }}>
-                      <img src={item.image} alt={item.name} style={{ width: '40px', height: '40px', objectFit: 'cover', borderRadius: '6px' }} />
+                      <img src={item.image || item.image_url} alt={item.name} style={{ width: '40px', height: '40px', objectFit: 'cover', borderRadius: '6px' }} />
                       <div>
                         <div style={{ fontSize: '13px', fontWeight: '500', color: '#e2e8f0' }}>{item.name}</div>
                         <div style={{ fontSize: '12px', color: '#9ca3af' }}>Qty: {item.qty} × ₹{item.price?.toLocaleString('en-IN')}</div>
@@ -131,7 +177,7 @@ const OrderRow = ({ order, getAuthHeaders, onRefresh }) => {
               <div style={{ marginBottom: '20px' }}>
                 <h4 style={{ color: '#9ca3af', fontSize: '12px', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '6px' }}>Shipping Address</h4>
                 <div style={{ color: '#cbd5e1', fontSize: '13px', background: '#1f2937', padding: '10px 14px', borderRadius: '8px', display: 'inline-block' }}>
-                  {order.shippingAddress?.address}, {order.shippingAddress?.city} — {order.shippingAddress?.postalCode}, {order.shippingAddress?.country}
+                  {shippingAddress.address}, {shippingAddress.city} — {shippingAddress.postalCode || shippingAddress.postal_code || 'N/A'}, {shippingAddress.country || 'India'}
                 </div>
               </div>
 
@@ -236,6 +282,7 @@ const OrderRow = ({ order, getAuthHeaders, onRefresh }) => {
 const AdminPage = () => {
   const { user, login, logout } = useAuth();
   const { socket, isConnected } = useSocket();
+  const { showToast } = useToast();
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [loginData, setLoginData] = useState({ email: '', password: '' });
   const [activeTab, setActiveTab] = useState('dashboard');
@@ -265,6 +312,64 @@ const AdminPage = () => {
 
   const [inventoryEdits, setInventoryEdits] = useState({});
   const [imageUpload, setImageUpload] = useState({ uploading: false, preview: '', error: '' });
+
+  // Inventory Filtering States & Hooks (Dynamic Card-based Navigation System)
+  const [inventoryView, setInventoryView] = useState('brands'); // 'brands', 'categories', 'products'
+  const [activeInventoryBrand, setActiveInventoryBrand] = useState('');
+  const [activeInventoryCategory, setActiveInventoryCategory] = useState('');
+
+  // Get unique brands dynamically from products list
+  const uniqueBrands = React.useMemo(() => {
+    const brands = new Set();
+    products.forEach(p => {
+      if (p.brand) {
+        // Normalize brand names for distinct list
+        const bNormalized = p.brand.trim();
+        if (bNormalized) brands.add(bNormalized);
+      }
+    });
+    return Array.from(brands).sort();
+  }, [products]);
+
+  // Get unique categories for selected brand dynamically
+  const brandInventoryCategories = React.useMemo(() => {
+    if (!activeInventoryBrand) return [];
+    const categories = new Set();
+    products.forEach(p => {
+      if (p.brand === activeInventoryBrand && p.category) {
+        categories.add(p.category.toLowerCase());
+      }
+    });
+    return Array.from(categories).sort();
+  }, [products, activeInventoryBrand]);
+
+  // Filter products for inventory grid based on brand and category selection
+  const filteredInventoryProducts = React.useMemo(() => {
+    return products.filter(p => {
+      return p.brand === activeInventoryBrand && p.category?.toLowerCase() === activeInventoryCategory.toLowerCase();
+    });
+  }, [products, activeInventoryBrand, activeInventoryCategory]);
+
+  // Product edit modal states
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [editingProductId, setEditingProductId] = useState('');
+  const [editForm, setEditForm] = useState({
+    name: '',
+    brand: '',
+    price: '',
+    originalPrice: '',
+    description: '',
+    category: 'phones',
+    image: '',
+    inStock: true,
+    countInStock: 10,
+    series: '',
+    discountPeriod: '',
+    baseStorage: '',
+    ram: ''
+  });
+  const [editImageUpload, setEditImageUpload] = useState({ uploading: false, preview: '', error: '' });
+  const [isEditCategoryOpen, setIsEditCategoryOpen] = useState(false);
 
   const [isCategoryOpen, setIsCategoryOpen] = useState(false);
   const CATEGORIES = [
@@ -305,6 +410,89 @@ const AdminPage = () => {
       }
     } catch {
       setImageUpload(s => ({ ...s, uploading: false, error: 'Upload failed. Check your connection.' }));
+    }
+  };
+
+  const handleEditImageUpload = async (file) => {
+    if (!file) return;
+    if (!file.type.startsWith('image/')) {
+      setEditImageUpload(s => ({ ...s, error: 'Only image files are allowed (JPG, PNG, WEBP).' }));
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      setEditImageUpload(s => ({ ...s, error: 'File too large. Max size is 5MB.' }));
+      return;
+    }
+    setEditImageUpload({ uploading: true, preview: URL.createObjectURL(file), error: '' });
+    try {
+      const formData = new FormData();
+      formData.append('image', file);
+      const res = await fetch('/api/upload/image', {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${user?.token || localStorage.getItem('token')}` },
+        body: formData,
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setEditForm(prev => ({ ...prev, image: data.imagePath }));
+        setEditImageUpload(s => ({ ...s, uploading: false, error: '' }));
+      } else {
+        setEditImageUpload(s => ({ ...s, uploading: false, error: data.message || 'Upload failed.' }));
+      }
+    } catch {
+      setEditImageUpload(s => ({ ...s, uploading: false, error: 'Upload failed. Check your connection.' }));
+    }
+  };
+
+  const openEditModal = (product) => {
+    setEditingProductId(product._id || product.id);
+    setEditForm({
+      name: product.name || '',
+      brand: product.brand || '',
+      price: product.price || '',
+      originalPrice: product.original_price !== undefined ? product.original_price : (product.originalPrice || ''),
+      description: product.description || '',
+      category: product.category || 'phones',
+      image: product.image || product.image_url || '',
+      inStock: product.inStock !== undefined ? product.inStock : (product.countInStock > 0),
+      countInStock: product.countInStock !== undefined ? product.countInStock : (product.count_in_stock || 0),
+      series: product.series || '',
+      discountPeriod: product.discount_period !== undefined ? product.discount_period : (product.discountPeriod || ''),
+      baseStorage: product.base_storage !== undefined ? product.base_storage : (product.baseStorage || ''),
+      ram: product.ram || ''
+    });
+    setEditImageUpload({ uploading: false, preview: product.image || product.image_url || '', error: '' });
+    setIsEditModalOpen(true);
+  };
+
+  const handleEditSubmit = async (e) => {
+    e.preventDefault();
+    setLoading(true);
+    try {
+      const response = await fetch(`/api/admin/products/${editingProductId}`, {
+        method: 'PUT',
+        headers: getAuthHeaders(),
+        body: JSON.stringify({
+          ...editForm,
+          price: parseFloat(editForm.price),
+          originalPrice: editForm.originalPrice !== '' && editForm.originalPrice !== null ? parseFloat(editForm.originalPrice) : null,
+          countInStock: parseInt(editForm.countInStock),
+          inStock: parseInt(editForm.countInStock) > 0
+        })
+      });
+
+      if (response.ok) {
+        setIsEditModalOpen(false);
+        loadDashboardData();
+        showToast('Product updated successfully!', 'success');
+      } else {
+        const data = await response.json();
+        showToast(`Failed to update product: ${data.message || 'Error'}`, 'error');
+      }
+    } catch (err) {
+      showToast('Error updating product', 'error');
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -439,6 +627,24 @@ const AdminPage = () => {
     'Authorization': `Bearer ${user?.token || localStorage.getItem('token')}`
   });
 
+  const toggleVipStatus = async (userId) => {
+    try {
+      const res = await fetch(`/api/users/${userId}/vip`, {
+        method: 'PUT',
+        headers: getAuthHeaders(),
+      });
+      if (res.ok) {
+        showToast('Member status toggled successfully', 'success');
+        loadDashboardData();
+      } else {
+        const data = await res.json();
+        showToast(`Failed to toggle member status: ${data.message || 'Error'}`, 'error');
+      }
+    } catch (err) {
+      showToast('Network error toggling member status', 'error');
+    }
+  };
+
   const handleProductSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
@@ -468,12 +674,12 @@ const AdminPage = () => {
           countInStock: 10
         });
         loadDashboardData();
-        alert('Product added successfully!');
+        showToast('Product added successfully!', 'success');
       } else {
-        alert('Failed to add product');
+        showToast('Failed to add product', 'error');
       }
     } catch (err) {
-      alert('Error adding product');
+      showToast('Error adding product', 'error');
     } finally {
       setLoading(false);
     }
@@ -490,12 +696,33 @@ const AdminPage = () => {
 
       if (response.ok) {
         loadDashboardData();
-        alert('Product deleted successfully!');
+        showToast('Product deleted successfully!', 'success');
       } else {
-        alert('Failed to delete product');
+        showToast('Failed to delete product', 'error');
       }
     } catch (err) {
-      alert('Error deleting product');
+      showToast('Error deleting product', 'error');
+    }
+  };
+
+  const deleteOrder = async (orderId) => {
+    if (!confirm('Are you sure you want to delete this order?')) return;
+
+    try {
+      const response = await fetch(`/api/orders/${orderId}`, {
+        method: 'DELETE',
+        headers: getAuthHeaders()
+      });
+
+      if (response.ok) {
+        loadDashboardData();
+        showToast('Order deleted successfully!', 'success');
+      } else {
+        const data = await response.json();
+        showToast(data.message || 'Failed to delete order', 'error');
+      }
+    } catch (err) {
+      showToast('Error deleting order', 'error');
     }
   };
 
@@ -536,17 +763,17 @@ const AdminPage = () => {
       });
 
       if (response.ok) {
-        alert('Stock updated successfully!');
+        showToast('Stock updated successfully!', 'success');
         // remove from edit state
         const newEdits = { ...inventoryEdits };
         delete newEdits[productId];
         setInventoryEdits(newEdits);
         loadDashboardData();
       } else {
-        alert('Failed to update stock');
+        showToast('Failed to update stock', 'error');
       }
     } catch (err) {
-      alert('Error updating stock');
+      showToast('Error updating stock', 'error');
     } finally {
       setLoading(false);
     }
@@ -587,13 +814,13 @@ const AdminPage = () => {
           isActive: true
         });
         loadDashboardData();
-        alert('Coupon created successfully!');
+        showToast('Coupon created successfully!', 'success');
       } else {
         const errorData = await response.json();
-        alert(errorData.message || 'Failed to create coupon');
+        showToast(errorData.message || 'Failed to create coupon', 'error');
       }
     } catch (err) {
-      alert('Error creating coupon');
+      showToast('Error creating coupon', 'error');
     } finally {
       setLoading(false);
     }
@@ -612,12 +839,12 @@ const AdminPage = () => {
 
       if (response.ok) {
         loadDashboardData();
-        alert('Coupon deleted successfully!');
+        showToast('Coupon deleted successfully!', 'success');
       } else {
-        alert('Failed to delete coupon');
+        showToast('Failed to delete coupon', 'error');
       }
     } catch (err) {
-      alert('Error deleting coupon');
+      showToast('Error deleting coupon', 'error');
     }
   };
 
@@ -801,6 +1028,9 @@ const AdminPage = () => {
                 </div>
               </div>
 
+              {/* Interactive Dashboard SVG Charts */}
+              <DashboardCharts products={products} orders={orders} />
+
               <div className="dashboard-grid">
                 <div className="recent-orders-card">
                   <div className="card-header">
@@ -823,7 +1053,7 @@ const AdminPage = () => {
                             <tr key={order._id}>
                               <td>#{order._id}</td>
                               <td>{order.user?.name || order.userName}</td>
-                              <td>₹{order.totalPrice.toLocaleString()}</td>
+                              <td>₹{Number(order.totalPrice !== undefined ? order.totalPrice : (order.total_price || 0)).toLocaleString('en-IN')}</td>
                               <td>
                                 <span className={`status ${order.isPaid ? 'paid' : 'pending'}`}>
                                   {order.isPaid ? 'Paid' : 'Pending'}
@@ -1142,93 +1372,284 @@ const AdminPage = () => {
                 </div>
               </div>
 
-              <div className="inventory-table-wrapper">
-                <table className="inventory-data-table">
-                  <thead>
-                    <tr>
-                      <th>Product</th>
-                      <th className="text-center">Brand</th>
-                      <th className="text-center">Price</th>
-                      <th className="text-center">Stock Level</th>
-                      <th>Status</th>
-                      <th style={{ textAlign: 'right' }}>Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {products.map(product => {
-                      const editValue = inventoryEdits[product._id] !== undefined ? inventoryEdits[product._id] : product.countInStock;
-                      const isEdited = inventoryEdits[product._id] !== undefined && parseInt(inventoryEdits[product._id]) !== product.countInStock;
-
+              {/* Level 1: Brand Cards Grid */}
+              {inventoryView === 'brands' && (
+                <div style={{ marginTop: '20px' }}>
+                  <h4 style={{ margin: '0 0 8px', fontSize: '1.2rem', fontWeight: '600', color: '#f5f5f7' }}>Select a Brand to Manage</h4>
+                  <p style={{ margin: '0 0 24px', fontSize: '0.9rem', color: '#86868b' }}>Choose one of the phone brands below to drill down into its categories.</p>
+                  
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: '20px' }}>
+                    {uniqueBrands.map(brand => {
+                      const meta = getBrandMeta(brand);
+                      const count = products.filter(p => p.brand === brand).length;
                       return (
-                        <tr key={product._id} className={isEdited ? 'row-edited' : ''}>
-                          <td>
-                            <div className="inventory-product-cell">
-                              <div className="inventory-img-wrap">
-                                <img src={product.image} alt={product.name} className="inventory-img" />
-                              </div>
-                              <span className="font-medium product-name-cell">{product.name}</span>
-                            </div>
-                          </td>
-                          <td className="text-center">
-                            <span className="brand-badge">{product.brand}</span>
-                          </td>
-                          <td className="price-cell text-center">₹{product.price.toLocaleString('en-IN')}</td>
-                          <td className="text-center">
-                            <div className={`stock-control-pill ${isEdited ? 'editing' : ''}`}>
-                              <button
-                                className="stock-btn minus"
-                                onClick={() => handleStockEditChange(product._id, Math.max(0, parseInt(editValue || 0) - 1))}
-                              >
-                                −
-                              </button>
-                              <input
-                                type="number"
-                                className="stock-input-flat"
-                                value={editValue}
-                                min="0"
-                                onChange={(e) => handleStockEditChange(product._id, e.target.value)}
-                              />
-                              <button
-                                className="stock-btn plus"
-                                onClick={() => handleStockEditChange(product._id, parseInt(editValue || 0) + 1)}
-                              >
-                                +
-                              </button>
-                            </div>
-                          </td>
-                          <td>
-                            <span className={`inventory-status-badge ${product.countInStock > 0 ? 'in-stock' : 'out-of-stock'}`}>
-                              <span className="status-dot"></span>
-                              {product.countInStock > 0 ? 'In Stock' : 'Out of Stock'}
-                            </span>
-                          </td>
-                          <td>
-                            <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end', alignItems: 'center' }}>
-                              <button
-                                className={`btn-save-stock ${isEdited ? 'btn-save-stock-active' : ''}`}
-                                onClick={() => handleUpdateStock(product._id, product)}
-                                disabled={!isEdited || loading}
-                              >
-                                {isEdited ? (loading ? '...' : 'Save Changes') : 'Up to date'}
-                              </button>
-                              <button
-                                className="action-btn delete"
-                                onClick={() => deleteProduct(product._id)}
-                                title="Delete Product"
-                              >
-                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></svg>
-                              </button>
-                            </div>
-                          </td>
-                        </tr>
+                        <div
+                          key={brand}
+                          onClick={() => {
+                            setActiveInventoryBrand(brand);
+                            setInventoryView('categories');
+                          }}
+                          style={{
+                            background: '#1c1c1e',
+                            border: '1px solid rgba(255,255,255,0.08)',
+                            borderRadius: '24px',
+                            padding: '32px 24px',
+                            cursor: 'pointer',
+                            transition: 'all 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94)',
+                            display: 'flex',
+                            flexDirection: 'column',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            height: '220px',
+                            textAlign: 'center',
+                            boxSizing: 'border-box'
+                          }}
+                          onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-4px)'; e.currentTarget.style.background = '#252528'; e.currentTarget.style.borderColor = 'rgba(255,255,255,0.15)'; }}
+                          onMouseLeave={e => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.background = '#1c1c1e'; e.currentTarget.style.borderColor = 'rgba(255,255,255,0.08)'; }}
+                        >
+                          <div style={{ height: '70px', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '16px', width: '100%' }}>
+                            {meta.logo ? (
+                              <img src={meta.logo} alt={brand} style={{ maxHeight: '100%', maxWidth: '70%', objectFit: 'contain', filter: 'brightness(0) invert(1)', opacity: 0.85 }} />
+                            ) : (
+                              <div style={{ color: '#0071e3' }}>{meta.icon || '📱'}</div>
+                            )}
+                          </div>
+                          <h4 style={{ margin: '0 0 6px', fontSize: '1.25rem', fontWeight: '700', color: '#fff', textTransform: 'uppercase', letterSpacing: '0.5px' }}>{brand}</h4>
+                          <p style={{ margin: 0, fontSize: '0.85rem', color: '#86868b', fontWeight: '500' }}>{count} Models in Stock</p>
+                        </div>
                       );
                     })}
-                  </tbody>
-                </table>
-                {(!products || products.length === 0) && (
-                  <div className="no-data">No products found</div>
-                )}
-              </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Level 2: Categories Cards Grid */}
+              {inventoryView === 'categories' && (
+                <div style={{ marginTop: '10px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '16px', marginBottom: '24px' }}>
+                    <button
+                      onClick={() => {
+                        setInventoryView('brands');
+                        setActiveInventoryBrand('');
+                      }}
+                      style={{
+                        background: 'rgba(255,255,255,0.04)',
+                        border: '1px solid rgba(255,255,255,0.08)',
+                        borderRadius: '9999px',
+                        padding: '10px 20px',
+                        color: '#fff',
+                        fontSize: '13px',
+                        cursor: 'pointer',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '8px',
+                        fontWeight: '600',
+                        transition: 'all 0.2s'
+                      }}
+                      onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.08)'; }}
+                      onMouseLeave={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.04)'; }}
+                    >
+                      ← Back to Brands
+                    </button>
+                    <span style={{ color: '#86868b', fontSize: '14px', fontWeight: '500' }}>
+                      Brand: <strong style={{ color: '#fff', textTransform: 'uppercase' }}>{activeInventoryBrand}</strong>
+                    </span>
+                  </div>
+
+                  <h4 style={{ margin: '0 0 8px', fontSize: '1.2rem', fontWeight: '600', color: '#f5f5f7' }}>Select a Category</h4>
+                  <p style={{ margin: '0 0 24px', fontSize: '0.9rem', color: '#86868b' }}>Pick one of the product categories below to manage its specific stock levels.</p>
+
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))', gap: '20px' }}>
+                    {brandInventoryCategories.map(cat => {
+                      const count = products.filter(p => p.brand === activeInventoryBrand && p.category?.toLowerCase() === cat).length;
+                      
+                      let displayName = cat;
+                      let icon = '📦';
+                      if (cat === 'phones') { displayName = 'Smartphones'; icon = '📱'; }
+                      else if (cat === 'tablets') { displayName = 'Tablets'; icon = '📟'; }
+                      else if (cat === 'laptops') { displayName = 'Laptops'; icon = '💻'; }
+                      else if (cat === 'watches') { displayName = 'Watches'; icon = '⌚'; }
+                      else if (cat === 'earpiece') { displayName = 'Earpieces'; icon = '🎧'; }
+                      else if (cat === 'accessories') { displayName = 'Accessories'; icon = '🔌'; }
+                      else displayName = displayName.charAt(0).toUpperCase() + displayName.slice(1).replace('-', ' ');
+
+                      return (
+                        <div
+                          key={cat}
+                          onClick={() => {
+                            setActiveInventoryCategory(cat);
+                            setInventoryView('products');
+                          }}
+                          style={{
+                            background: '#1c1c1e',
+                            border: '1px solid rgba(255,255,255,0.08)',
+                            borderRadius: '24px',
+                            padding: '32px 24px',
+                            cursor: 'pointer',
+                            transition: 'all 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94)',
+                            display: 'flex',
+                            flexDirection: 'column',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            height: '200px',
+                            textAlign: 'center',
+                            boxSizing: 'border-box'
+                          }}
+                          onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-4px)'; e.currentTarget.style.background = '#252528'; e.currentTarget.style.borderColor = 'rgba(255,255,255,0.15)'; }}
+                          onMouseLeave={e => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.background = '#1c1c1e'; e.currentTarget.style.borderColor = 'rgba(255,255,255,0.08)'; }}
+                        >
+                          <div style={{ fontSize: '3rem', marginBottom: '14px', lineHeight: 1 }}>{icon}</div>
+                          <h4 style={{ margin: '0 0 6px', fontSize: '1.2rem', fontWeight: '700', color: '#fff' }}>{displayName}</h4>
+                          <p style={{ margin: 0, fontSize: '0.85rem', color: '#86868b', fontWeight: '500' }}>{count} Models listed</p>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+
+              {/* Level 3: Products Table Grid */}
+              {inventoryView === 'products' && (
+                <div style={{ marginTop: '10px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '16px', marginBottom: '24px' }}>
+                    <button
+                      onClick={() => {
+                        setInventoryView('categories');
+                        setActiveInventoryCategory('');
+                      }}
+                      style={{
+                        background: 'rgba(255,255,255,0.04)',
+                        border: '1px solid rgba(255,255,255,0.08)',
+                        borderRadius: '9999px',
+                        padding: '10px 20px',
+                        color: '#fff',
+                        fontSize: '13px',
+                        cursor: 'pointer',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '8px',
+                        fontWeight: '600',
+                        transition: 'all 0.2s'
+                      }}
+                      onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.08)'; }}
+                      onMouseLeave={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.04)'; }}
+                    >
+                      ← Back to Categories
+                    </button>
+                    <span style={{ color: '#86868b', fontSize: '14px', fontWeight: '500' }}>
+                      Brand: <strong style={{ color: '#fff', textTransform: 'uppercase' }}>{activeInventoryBrand}</strong> › Category: <strong style={{ color: '#0071e3', textTransform: 'capitalize' }}>{activeInventoryCategory === 'phones' ? 'Smartphones' : activeInventoryCategory === 'earpiece' ? 'Earpieces' : activeInventoryCategory}</strong>
+                    </span>
+                  </div>
+
+                  <div className="inventory-table-wrapper">
+                    <table className="inventory-data-table">
+                      <thead>
+                        <tr>
+                          <th>Product</th>
+                          <th className="text-center">Brand</th>
+                          <th className="text-center">Price</th>
+                          <th className="text-center">Stock Level</th>
+                          <th>Status</th>
+                          <th style={{ textAlign: 'right' }}>Actions</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {filteredInventoryProducts.map(product => {
+                          const editValue = inventoryEdits[product._id] !== undefined ? inventoryEdits[product._id] : product.countInStock;
+                          const isEdited = inventoryEdits[product._id] !== undefined && parseInt(inventoryEdits[product._id]) !== product.countInStock;
+
+                          return (
+                            <tr key={product._id} className={isEdited ? 'row-edited' : ''}>
+                              <td>
+                                <div className="inventory-product-cell">
+                                  <div className="inventory-img-wrap">
+                                    <img src={product.image} alt={product.name} className="inventory-img" />
+                                  </div>
+                                  <span className="font-medium product-name-cell">{product.name}</span>
+                                </div>
+                              </td>
+                              <td className="text-center">
+                                <span className="brand-badge">{product.brand}</span>
+                              </td>
+                              <td className="price-cell text-center">₹{product.price.toLocaleString('en-IN')}</td>
+                              <td className="text-center">
+                                <div className={`stock-control-pill ${isEdited ? 'editing' : ''}`}>
+                                  <button
+                                    className="stock-btn minus"
+                                    onClick={() => handleStockEditChange(product._id, Math.max(0, parseInt(editValue || 0) - 1))}
+                                  >
+                                    −
+                                  </button>
+                                  <input
+                                    type="number"
+                                    className="stock-input-flat"
+                                    value={editValue}
+                                    min="0"
+                                    onChange={(e) => handleStockEditChange(product._id, e.target.value)}
+                                  />
+                                  <button
+                                    className="stock-btn plus"
+                                    onClick={() => handleStockEditChange(product._id, parseInt(editValue || 0) + 1)}
+                                  >
+                                    +
+                                  </button>
+                                </div>
+                              </td>
+                              <td>
+                                <span className={`inventory-status-badge ${product.countInStock > 0 ? 'in-stock' : 'out-of-stock'}`}>
+                                  <span className="status-dot"></span>
+                                  {product.countInStock > 0 ? 'In Stock' : 'Out of Stock'}
+                                </span>
+                              </td>
+                              <td>
+                                <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end', alignItems: 'center' }}>
+                                  <button
+                                    className={`btn-save-stock ${isEdited ? 'btn-save-stock-active' : ''}`}
+                                    onClick={() => handleUpdateStock(product._id, product)}
+                                    disabled={!isEdited || loading}
+                                  >
+                                    {isEdited ? (loading ? '...' : 'Save Changes') : 'Up to date'}
+                                  </button>
+                                  <button
+                                    onClick={() => openEditModal(product)}
+                                    title="Edit Product Info"
+                                    style={{
+                                      background: 'rgba(255,255,255,0.05)',
+                                      border: '1px solid rgba(255,255,255,0.1)',
+                                      borderRadius: '8px',
+                                      padding: '6px 10px',
+                                      cursor: 'pointer',
+                                      display: 'flex',
+                                      alignItems: 'center',
+                                      justifyContent: 'center',
+                                      color: '#a1a1a6',
+                                      transition: 'all 0.2s'
+                                    }}
+                                    onMouseEnter={e => { e.currentTarget.style.color = '#fff'; e.currentTarget.style.background = 'rgba(255,255,255,0.1)'; }}
+                                    onMouseLeave={e => { e.currentTarget.style.color = '#a1a1a6'; e.currentTarget.style.background = 'rgba(255,255,255,0.05)'; }}
+                                  >
+                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 1 1 3 3L12 15l-4 1 1-4Z"></path></svg>
+                                  </button>
+                                  <button
+                                    className="action-btn delete"
+                                    onClick={() => deleteProduct(product._id)}
+                                    title="Delete Product"
+                                  >
+                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></svg>
+                                  </button>
+                                </div>
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                    {(!filteredInventoryProducts || filteredInventoryProducts.length === 0) && (
+                      <div className="no-data">No products match the selected filters</div>
+                    )}
+                  </div>
+                </div>
+              )}
             </div>
           )}
 
@@ -1242,16 +1663,37 @@ const AdminPage = () => {
                       <th>Name</th>
                       <th>Email</th>
                       <th>Admin</th>
+                      <th>Member Status</th>
                       <th>Created</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {users.map(user => (
-                      <tr key={user._id}>
-                        <td>{user.name}</td>
-                        <td>{user.email}</td>
-                        <td>{user.isAdmin ? 'Yes' : 'No'}</td>
-                        <td>{new Date(user.createdAt).toLocaleDateString()}</td>
+                    {users.map(u => (
+                      <tr key={u._id}>
+                        <td>{u.name}</td>
+                        <td>{u.email}</td>
+                        <td>{u.isAdmin ? 'Yes' : 'No'}</td>
+                        <td>
+                          <button
+                            onClick={() => toggleVipStatus(u._id)}
+                            style={{
+                              background: u.isVip ? 'linear-gradient(135deg, #FFD700 0%, #FDB931 100%)' : 'rgba(255,255,255,0.1)',
+                              color: u.isVip ? '#000' : '#fff',
+                              border: 'none',
+                              padding: '4px 10px',
+                              borderRadius: '12px',
+                              fontSize: '11px',
+                              fontWeight: 'bold',
+                              cursor: 'pointer',
+                              transition: 'all 0.2s',
+                              textTransform: 'uppercase',
+                              letterSpacing: '0.5px'
+                            }}
+                          >
+                            {u.isVip ? '💎 MEMBER' : 'Make Member'}
+                          </button>
+                        </td>
+                        <td>{new Date(u.createdAt).toLocaleDateString()}</td>
                       </tr>
                     ))}
                   </tbody>
@@ -1300,6 +1742,7 @@ const AdminPage = () => {
                         order={order}
                         getAuthHeaders={getAuthHeaders}
                         onRefresh={loadDashboardData}
+                        onDelete={deleteOrder}
                       />
                     ))}
                   </tbody>
@@ -1488,6 +1931,320 @@ const AdminPage = () => {
             </div>
           )}
         </div>
+
+        {/* ── EDIT PRODUCT MODAL ── */}
+        {isEditModalOpen && (
+          <div 
+            style={{
+              position: 'fixed',
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
+              background: 'rgba(0, 0, 0, 0.8)',
+              backdropFilter: 'blur(10px)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              zIndex: 9999,
+              padding: '20px',
+              boxSizing: 'border-box'
+            }}
+            onClick={() => setIsEditModalOpen(false)}
+          >
+            <div 
+              style={{
+                background: '#1c1c1e',
+                border: '1px solid rgba(255, 255, 255, 0.1)',
+                borderRadius: '24px',
+                width: '100%',
+                maxWidth: '700px',
+                maxHeight: '90vh',
+                overflowY: 'auto',
+                padding: '32px',
+                boxSizing: 'border-box',
+                boxShadow: '0 20px 50px rgba(0, 0, 0, 0.6)'
+              }}
+              onClick={e => e.stopPropagation()}
+            >
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
+                <h3 style={{ margin: 0, fontSize: '1.5rem', fontWeight: '700', color: '#f5f5f7' }}>Edit Product Details</h3>
+                <button 
+                  type="button"
+                  onClick={() => setIsEditModalOpen(false)}
+                  style={{
+                    background: 'rgba(255,255,255,0.05)',
+                    border: 'none',
+                    borderRadius: '50%',
+                    width: '32px',
+                    height: '32px',
+                    color: '#fff',
+                    cursor: 'pointer',
+                    fontSize: '18px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center'
+                  }}
+                >
+                  ×
+                </button>
+              </div>
+
+              <form onSubmit={handleEditSubmit}>
+                <div className="form-row" style={{ display: 'flex', gap: '16px', marginBottom: '16px' }}>
+                  <div className="form-group" style={{ flex: 1 }}>
+                    <label style={{ display: 'block', color: '#a1a1a6', fontSize: '0.85rem', marginBottom: '6px' }}>Brand Name:</label>
+                    <input
+                      type="text"
+                      value={editForm.brand}
+                      onChange={(e) => setEditForm({ ...editForm, brand: e.target.value })}
+                      required
+                      style={{ width: '100%', padding: '12px 16px', background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '16px', color: '#fff', fontSize: '1rem', boxSizing: 'border-box' }}
+                    />
+                  </div>
+                  <div className="form-group" style={{ flex: 1 }}>
+                    <label style={{ display: 'block', color: '#a1a1a6', fontSize: '0.85rem', marginBottom: '6px' }}>Product Name:</label>
+                    <input
+                      type="text"
+                      value={editForm.name}
+                      onChange={(e) => setEditForm({ ...editForm, name: e.target.value })}
+                      required
+                      style={{ width: '100%', padding: '12px 16px', background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '16px', color: '#fff', fontSize: '1rem', boxSizing: 'border-box' }}
+                    />
+                  </div>
+                </div>
+
+                <div className="form-row" style={{ display: 'flex', gap: '16px', marginBottom: '16px' }}>
+                  <div className="form-group" style={{ flex: 1 }}>
+                    <label style={{ display: 'block', color: '#a1a1a6', fontSize: '0.85rem', marginBottom: '6px' }}>Series of Product:</label>
+                    <input
+                      type="text"
+                      value={editForm.series}
+                      onChange={(e) => setEditForm({ ...editForm, series: e.target.value })}
+                      placeholder="e.g. Pro, Max, Ultra"
+                      style={{ width: '100%', padding: '12px 16px', background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '16px', color: '#fff', fontSize: '1rem', boxSizing: 'border-box' }}
+                    />
+                  </div>
+                  <div className="form-group" style={{ flex: 1 }}>
+                    <label style={{ display: 'block', color: '#a1a1a6', fontSize: '0.85rem', marginBottom: '6px' }}>Original Price (MRP):</label>
+                    <input
+                      type="number"
+                      value={editForm.originalPrice}
+                      onChange={(e) => setEditForm({ ...editForm, originalPrice: e.target.value })}
+                      style={{ width: '100%', padding: '12px 16px', background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '16px', color: '#fff', fontSize: '1rem', boxSizing: 'border-box' }}
+                    />
+                  </div>
+                </div>
+
+                <div className="form-row" style={{ display: 'flex', gap: '16px', marginBottom: '16px' }}>
+                  <div className="form-group" style={{ flex: 1 }}>
+                    <label style={{ display: 'block', color: '#a1a1a6', fontSize: '0.85rem', marginBottom: '6px' }}>Discount Period:</label>
+                    <input
+                      type="text"
+                      value={editForm.discountPeriod}
+                      onChange={(e) => setEditForm({ ...editForm, discountPeriod: e.target.value })}
+                      placeholder="e.g. 7 Days"
+                      style={{ width: '100%', padding: '12px 16px', background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '16px', color: '#fff', fontSize: '1rem', boxSizing: 'border-box' }}
+                    />
+                  </div>
+                  <div className="form-group" style={{ flex: 1 }}>
+                    <label style={{ display: 'block', color: '#a1a1a6', fontSize: '0.85rem', marginBottom: '6px' }}>Price:</label>
+                    <input
+                      type="number"
+                      value={editForm.price}
+                      onChange={(e) => setEditForm({ ...editForm, price: e.target.value })}
+                      required
+                      style={{ width: '100%', padding: '12px 16px', background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '16px', color: '#fff', fontSize: '1rem', boxSizing: 'border-box' }}
+                    />
+                  </div>
+                </div>
+
+                <div className="form-row" style={{ display: 'flex', gap: '16px', marginBottom: '16px' }}>
+                  <div className="form-group" style={{ flex: 1 }}>
+                    <label style={{ display: 'block', color: '#a1a1a6', fontSize: '0.85rem', marginBottom: '6px' }}>Category:</label>
+                    <div style={{ position: 'relative' }}>
+                      <div
+                        onClick={() => setIsEditCategoryOpen(!isEditCategoryOpen)}
+                        style={{
+                          width: '100%', padding: '12px 16px', background: 'rgba(255,255,255,0.04)',
+                          border: `1px solid ${isEditCategoryOpen ? '#0071e3' : 'rgba(255,255,255,0.1)'}`,
+                          borderRadius: '16px', color: '#f5f5f7', fontSize: '1rem',
+                          cursor: 'pointer', display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                          boxSizing: 'border-box'
+                        }}
+                      >
+                        {CATEGORIES.find(c => c.id === editForm.category)?.name || 'Select Category'}
+                        <span style={{ fontSize: '10px', transform: isEditCategoryOpen ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s' }}>▼</span>
+                      </div>
+                      {isEditCategoryOpen && (
+                        <div
+                          style={{
+                            position: 'absolute', top: '100%', left: 0, right: 0, marginTop: '8px',
+                            background: '#1c1c1e', border: '1px solid rgba(255,255,255,0.1)',
+                            borderRadius: '16px', overflow: 'hidden', zIndex: 10100,
+                            boxShadow: '0 10px 30px rgba(0,0,0,0.5)'
+                          }}
+                        >
+                          {CATEGORIES.map(cat => (
+                            <div
+                              key={cat.id}
+                              onClick={() => {
+                                setEditForm({ ...editForm, category: cat.id });
+                                setIsEditCategoryOpen(false);
+                              }}
+                              style={{
+                                padding: '12px 16px', cursor: 'pointer',
+                                background: editForm.category === cat.id ? 'rgba(0,113,227,0.15)' : 'transparent',
+                                color: editForm.category === cat.id ? '#0071e3' : '#f5f5f7',
+                                transition: 'background 0.2s',
+                                fontSize: '0.95rem'
+                              }}
+                            >
+                              {cat.name}
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                <div className="form-row" style={{ display: 'flex', gap: '16px', marginBottom: '16px' }}>
+                  <div className="form-group" style={{ flex: 1 }}>
+                    <label style={{ display: 'block', color: '#a1a1a6', fontSize: '0.85rem', marginBottom: '6px' }}>Base Storage:</label>
+                    <input
+                      type="text"
+                      value={editForm.baseStorage}
+                      onChange={(e) => setEditForm({ ...editForm, baseStorage: e.target.value })}
+                      placeholder="e.g. 256GB"
+                      style={{ width: '100%', padding: '12px 16px', background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '16px', color: '#fff', fontSize: '1rem', boxSizing: 'border-box' }}
+                    />
+                  </div>
+                  <div className="form-group" style={{ flex: 1 }}>
+                    <label style={{ display: 'block', color: '#a1a1a6', fontSize: '0.85rem', marginBottom: '6px' }}>RAM:</label>
+                    <input
+                      type="text"
+                      value={editForm.ram}
+                      onChange={(e) => setEditForm({ ...editForm, ram: e.target.value })}
+                      placeholder="e.g. 8GB"
+                      style={{ width: '100%', padding: '12px 16px', background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '16px', color: '#fff', fontSize: '1rem', boxSizing: 'border-box' }}
+                    />
+                  </div>
+                </div>
+
+                <div className="form-row" style={{ display: 'flex', gap: '16px', marginBottom: '16px' }}>
+                  <div className="form-group" style={{ flex: 1 }}>
+                    <label style={{ display: 'block', color: '#a1a1a6', fontSize: '0.85rem', marginBottom: '6px' }}>Stock in Inventory:</label>
+                    <input
+                      type="number"
+                      value={editForm.countInStock}
+                      onChange={(e) => setEditForm({ ...editForm, countInStock: e.target.value })}
+                      min="0"
+                      required
+                      style={{ width: '100%', padding: '12px 16px', background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '16px', color: '#fff', fontSize: '1rem', boxSizing: 'border-box' }}
+                    />
+                  </div>
+                </div>
+
+                <div className="form-group" style={{ marginBottom: '20px' }}>
+                  <label style={{ display: 'block', color: '#a1a1a6', fontSize: '0.85rem', marginBottom: '6px' }}>Product Image:</label>
+                  <div
+                    className="image-upload-zone"
+                    onClick={() => document.getElementById('admin-edit-img-input').click()}
+                    style={{
+                      border: '2px dashed rgba(255,255,255,0.15)',
+                      borderRadius: '24px',
+                      padding: '24px',
+                      textAlign: 'center',
+                      cursor: 'pointer',
+                      background: 'rgba(255,255,255,0.02)',
+                      transition: 'all 0.3s ease',
+                      position: 'relative',
+                      overflow: 'hidden'
+                    }}
+                  >
+                    {editImageUpload.preview || editForm.image ? (
+                      <div className="image-upload-preview" style={{ position: 'relative', height: '140px', width: '100%', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+                        <img
+                          src={editImageUpload.preview || editForm.image}
+                          alt="Preview"
+                          style={{ maxHeight: '100%', maxWidth: '100%', objectFit: 'contain', borderRadius: '12px' }}
+                        />
+                        <div className="image-upload-overlay" style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontSize: '14px', borderRadius: '12px' }}>
+                          <span>🔄 Click to replace</span>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="image-upload-placeholder">
+                        <p className="upload-main-text" style={{ margin: '0 0 4px', fontSize: '0.95rem', color: '#f5f5f7' }}>
+                          {editImageUpload.uploading ? 'Uploading…' : 'Click to upload image'}
+                        </p>
+                        <p className="upload-sub-text" style={{ margin: 0, fontSize: '0.8rem', color: '#86868b' }}>PNG, JPG, WEBP · Max 5MB</p>
+                      </div>
+                    )}
+                    <input
+                      id="admin-edit-img-input"
+                      type="file"
+                      accept="image/*"
+                      style={{ display: 'none' }}
+                      onChange={e => {
+                        const file = e.target.files[0];
+                        if (file) handleEditImageUpload(file);
+                        e.target.value = '';
+                      }}
+                    />
+                  </div>
+                  {editImageUpload.error && (
+                    <p style={{ color: '#ff453a', fontSize: '0.85rem', marginTop: '6px', margin: 0 }}>⚠️ {editImageUpload.error}</p>
+                  )}
+                </div>
+
+                <div className="form-group" style={{ marginBottom: '24px' }}>
+                  <label style={{ display: 'block', color: '#a1a1a6', fontSize: '0.85rem', marginBottom: '6px' }}>Description:</label>
+                  <textarea
+                    value={editForm.description}
+                    onChange={(e) => setEditForm({ ...editForm, description: e.target.value })}
+                    rows="4"
+                    style={{ width: '100%', padding: '12px 16px', background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '16px', color: '#fff', fontSize: '1rem', boxSizing: 'border-box', fontFamily: 'inherit', resize: 'vertical' }}
+                  />
+                </div>
+
+                <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end' }}>
+                  <button 
+                    type="button" 
+                    onClick={() => setIsEditModalOpen(false)}
+                    style={{
+                      padding: '12px 24px',
+                      borderRadius: '9999px',
+                      border: '1px solid rgba(255,255,255,0.15)',
+                      background: 'transparent',
+                      color: '#fff',
+                      fontWeight: '600',
+                      cursor: 'pointer'
+                    }}
+                  >
+                    Cancel
+                  </button>
+                  <button 
+                    type="submit" 
+                    disabled={loading}
+                    style={{
+                      padding: '12px 24px',
+                      borderRadius: '9999px',
+                      border: 'none',
+                      background: 'linear-gradient(135deg, #0071e3, #8b5cf6)',
+                      color: '#fff',
+                      fontWeight: '600',
+                      cursor: 'pointer'
+                    }}
+                  >
+                    {loading ? 'Saving...' : 'Save Changes'}
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

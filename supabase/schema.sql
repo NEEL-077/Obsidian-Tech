@@ -8,6 +8,7 @@ CREATE TABLE public.users (
     name TEXT NOT NULL,
     email TEXT UNIQUE NOT NULL,
     role TEXT DEFAULT 'user' CHECK (role IN ('user', 'admin')),
+    is_vip BOOLEAN DEFAULT false,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
 );
 
@@ -37,6 +38,12 @@ CREATE TABLE public.orders (
     paid_at TIMESTAMP WITH TIME ZONE,
     is_delivered BOOLEAN DEFAULT false,
     delivered_at TIMESTAMP WITH TIME ZONE,
+    order_status TEXT DEFAULT 'Pending',
+    tracking_number TEXT,
+    carrier TEXT,
+    estimated_delivery TIMESTAMP WITH TIME ZONE,
+    email_notifications JSONB DEFAULT '{}'::jsonb,
+    payment_result JSONB,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
 );
 

@@ -80,6 +80,36 @@ const products = [
         rating: 4.6,
         num_reviews: 78,
     },
+    {
+        name: 'OnePlus 15',
+        brand: 'OnePlus',
+        category: 'phones',
+        series: 'Number Series',
+        price: 79999,
+        original_price: 84999,
+        description: 'Smooth beyond belief. A masterpiece of performance and elegance.',
+        image_url: '/images/heroes/op15.png',
+        base_storage: '256GB',
+        ram: '16GB',
+        count_in_stock: 40,
+        rating: 4.8,
+        num_reviews: 95,
+    },
+    {
+        name: 'Xiaomi 17 Ultra',
+        brand: 'Xiaomi',
+        category: 'phones',
+        series: 'Xiaomi Ultra',
+        price: 99999,
+        original_price: 109999,
+        description: 'Photography redefined. Engineered with Leica optics for studio-grade image quality.',
+        image_url: '/images/heroes/x17u.png',
+        base_storage: '512GB',
+        ram: '16GB',
+        count_in_stock: 20,
+        rating: 4.9,
+        num_reviews: 60,
+    },
 
     // === TABLETS ===
     {
@@ -168,9 +198,14 @@ const products = [
 async function seedDatabase() {
     console.log('🌱 Starting database seed...');
     
-    // Optional: Clear existing products
-    // console.log('Clearing existing products...');
-    // await supabase.from('products').delete().neq('id', '00000000-0000-0000-0000-000000000000');
+    // Clear existing products
+    console.log('Clearing existing products...');
+    const { error: deleteError } = await supabase.from('products').delete().neq('id', '00000000-0000-0000-0000-000000000000');
+    if (deleteError) {
+        console.error('⚠️ Could not clear existing products:', deleteError.message);
+    } else {
+        console.log('✅ Cleared existing products.');
+    }
     
     let inserted = 0;
     

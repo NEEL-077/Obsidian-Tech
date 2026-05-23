@@ -97,6 +97,7 @@ const authUser = async (req, res) => {
                 email: email,
                 isAdmin: true,
                 twoFactorEnabled: false,
+                isVip: true,
                 token: generateToken('admin_bypass_001'),
             });
         }
@@ -123,6 +124,7 @@ const authUser = async (req, res) => {
             name: publicUser?.name || data.user.user_metadata?.full_name || 'User',
             email: data.user.email,
             isAdmin: publicUser?.role === 'admin',
+            isVip: publicUser?.is_vip || false,
             twoFactorEnabled: false,
             token: data.session.access_token,
         });
@@ -151,6 +153,7 @@ const getUserProfile = async (req, res) => {
             name: user.name,
             email: user.email,
             isAdmin: user.role === 'admin',
+            isVip: user.is_vip || false,
             twoFactorEnabled: false,
         });
     } catch (error) {
@@ -193,6 +196,7 @@ const updateUserProfile = async (req, res) => {
             name: updatedUser.name,
             email: updatedUser.email,
             isAdmin: updatedUser.role === 'admin',
+            isVip: updatedUser.is_vip || false,
             twoFactorEnabled: false,
             token: generateToken(updatedUser.id),
         });
@@ -274,21 +278,71 @@ const verifyLogin2FA = async (req, res) => {
 // @access  Private/Admin
 const getUsers = async (req, res) => {
     try {
-        const { data: users, error } = await supabase
+        // Try with is_vip first; fall back if the column doesn't exist yet
+        let { data: users, error } = await supabase
             .from('users')
-            .select('id, name, email, role, created_at');
+            .select('id, name, email, role, is_vip, created_at');
 
-        if (error) throw error;
+        if (error && error.message && error.message.includes('is_vip')) {
+            // Column not yet added to DB — query without it
+            const fallback = await supabase
+                .from('users')
+                .select('id, name, email, role, created_at');
+            if (fallback.error) throw fallback.error;
+            users = fallback.data;
+        } else if (error) {
+            throw error;
+        }
 
         res.json(users.map(u => ({
             _id: u.id,
             name: u.name,
             email: u.email,
             isAdmin: u.role === 'admin',
+            isVip: u.is_vip || false,
             createdAt: u.created_at,
         })));
     } catch (err) {
         res.status(400).json({ message: err.message });
+    }
+};
+
+// @desc    Toggle user VIP status
+// @route   PUT /api/users/:id/vip
+// @access  Private/Admin
+const toggleUserVip = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { data: user, error: fetchError } = await supabase
+            .from('users')
+            .select('is_vip')
+            .eq('id', id)
+            .single();
+
+        if (fetchError || !user) {
+            return res.status(404).json({ message: 'User not found' });
+        }
+
+        const { data: updatedUser, error: updateError } = await supabase
+            .from('users')
+            .update({ is_vip: !user.is_vip })
+            .eq('id', id)
+            .select()
+            .single();
+
+        if (updateError) {
+            return res.status(400).json({ message: updateError.message });
+        }
+
+        res.json({
+            _id: updatedUser.id,
+            name: updatedUser.name,
+            email: updatedUser.email,
+            isAdmin: updatedUser.role === 'admin',
+            isVip: updatedUser.is_vip
+        });
+    } catch (err) {
+        res.status(500).json({ message: err.message });
     }
 };
 
@@ -298,6 +352,7 @@ module.exports = {
     getUserProfile,
     updateUserProfile,
     getUsers,
+    toggleUserVip,
     addUserAddress,
     updateUserAddress,
     deleteUserAddress,

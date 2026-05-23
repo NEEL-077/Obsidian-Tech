@@ -383,6 +383,28 @@ const resendOrderEmailController = async (req, res) => {
     }
 };
 
+// @desc    Delete order (Admin only)
+// @route   DELETE /api/orders/:id
+// @access  Private/Admin
+const deleteOrder = async (req, res) => {
+    try {
+        const { data, error } = await supabase
+            .from('orders')
+            .delete()
+            .eq('id', req.params.id)
+            .select();
+
+        if (error) throw error;
+        if (!data || data.length === 0) {
+            return res.status(404).json({ message: 'Order not found' });
+        }
+
+        res.json({ message: 'Order removed successfully', order: data[0] });
+    } catch (error) {
+        res.status(400).json({ message: error.message });
+    }
+};
+
 module.exports = {
     addOrderItems,
     getOrderById,
@@ -394,4 +416,5 @@ module.exports = {
     cancelOrder,
     getOrderEmailStatus: getOrderEmailStatusController,
     resendOrderEmail: resendOrderEmailController,
+    deleteOrder,
 };

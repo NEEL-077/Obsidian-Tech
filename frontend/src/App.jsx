@@ -22,6 +22,7 @@ import PageTransition from './components/PageTransition';
 import { AuthProvider } from './context/AuthContext';
 import { ProductProvider } from './context/ProductContext';
 import { SocketProvider } from './context/SocketContext'; // Import SocketProvider
+import { ToastProvider } from './context/ToastContext'; // Import ToastProvider
 import ScrollToTop from './components/ScrollToTop';
 import Chatbot from './components/Chatbot';
 import { HelmetProvider } from 'react-helmet-async';
@@ -73,51 +74,53 @@ function App() {
     <HelmetProvider>
       <AuthProvider>
         <SocketProvider>
-          <ProductProvider>
-            <CartProvider>
-              <Router>
-                <div className="App">
-                  <Routes>
-                    {/* Admin Route (no navbar/footer) */}
-                    <Route path="/admin" element={<AdminPage />} />
+          <ToastProvider>
+            <ProductProvider>
+              <CartProvider>
+                <Router>
+                  <div className="App">
+                    <Routes>
+                      {/* Admin Route (no navbar/footer) */}
+                      <Route path="/admin" element={<AdminPage />} />
 
-                    {/* Auth Route (no navbar/footer) */}
-                    <Route path="/auth" element={<AuthPage />} />
+                      {/* Auth Route (no navbar/footer) */}
+                      <Route path="/auth" element={<AuthPage />} />
 
-                    {/* Main Routes (with navbar/footer) */}
-                    <Route
-                      path="/*"
-                      element={
-                        <>
-                          <Navbar />
-                          <main>
-                            <Routes>
-                              {/* BUG #3 FIX: Removed outer <PageTransition> wrapper — HomePage already
-                                  defines its own <PageTransition> internally, causing double animation. */}
-                              <Route path="/" element={<HomePage />} />
-                              <Route path="/products" element={<PageTransition><ProductsPage /></PageTransition>} />
-                              <Route path="/brand/:brandName" element={<PageTransition><BrandPage /></PageTransition>} />
-                              <Route path="/category/:categoryName" element={<PageTransition><CategoryPage /></PageTransition>} />
-                              <Route path="/product/:id" element={<PageTransition><ProductDetailPage /></PageTransition>} />
-                              <Route path="/cart" element={<PageTransition><CartPage /></PageTransition>} />
-                              <Route path="/checkout" element={<PageTransition><CheckoutPage /></PageTransition>} />
-                              <Route path="/profile" element={<PageTransition><ProfilePage /></PageTransition>} />
-                              <Route path="/about" element={<PageTransition><AboutPage /></PageTransition>} />
-                              <Route path="/contact" element={<PageTransition><ContactPage /></PageTransition>} />
-                              <Route path="/order-tracking/:orderId" element={<PageTransition><OrderTrackingPage /></PageTransition>} />
-                            </Routes>
-                          </main>
-                          <StickyFooter />
-                          <ScrollToTop />
-                          <Chatbot />
-                        </>
-                      }
-                    />
-                  </Routes>
-                </div>
-              </Router>
-            </CartProvider>
-          </ProductProvider>
+                      {/* Main Routes (with navbar/footer) */}
+                      <Route
+                        path="/*"
+                        element={
+                          <>
+                            <Navbar />
+                            <main>
+                              <Routes>
+                                {/* BUG #3 FIX: Removed outer <PageTransition> wrapper — HomePage already
+                                    defines its own <PageTransition> internally, causing double animation. */}
+                                <Route path="/" element={<HomePage />} />
+                                <Route path="/products" element={<PageTransition><ProductsPage /></PageTransition>} />
+                                <Route path="/brand/:brandName" element={<PageTransition><BrandPage /></PageTransition>} />
+                                <Route path="/category/:categoryName" element={<PageTransition><CategoryPage /></PageTransition>} />
+                                <Route path="/product/:id" element={<PageTransition><ProductDetailPage /></PageTransition>} />
+                                <Route path="/cart" element={<PageTransition><CartPage /></PageTransition>} />
+                                <Route path="/checkout" element={<PageTransition><CheckoutPage /></PageTransition>} />
+                                <Route path="/profile" element={<PageTransition><ProfilePage /></PageTransition>} />
+                                <Route path="/about" element={<PageTransition><AboutPage /></PageTransition>} />
+                                <Route path="/contact" element={<PageTransition><ContactPage /></PageTransition>} />
+                                <Route path="/order-tracking/:orderId" element={<PageTransition><OrderTrackingPage /></PageTransition>} />
+                              </Routes>
+                            </main>
+                            <StickyFooter />
+                            <ScrollToTop />
+                            <Chatbot />
+                          </>
+                        }
+                      />
+                    </Routes>
+                  </div>
+                </Router>
+              </CartProvider>
+            </ProductProvider>
+          </ToastProvider>
         </SocketProvider>
       </AuthProvider>
     </HelmetProvider>

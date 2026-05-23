@@ -24,7 +24,7 @@ const BrandPage = () => {
     const { brandName } = useParams();
     const navigate = useNavigate();
     const { addToCart } = useCart();
-    
+
     // Default to a generic name if brand isn't mapped, otherwise capitalize
     const formattedBrandName = brandName.charAt(0).toUpperCase() + brandName.slice(1);
     const meta = BRAND_META[brandName.toLowerCase()] || DEFAULT_META(formattedBrandName);
@@ -48,17 +48,17 @@ const BrandPage = () => {
                 let brandProducts = (data.products || []).filter(
                     p => (p.brand || '').toLowerCase().replace(/\s+/g, '-') === brandName.toLowerCase()
                 );
-                
+
                 // If a category query parameter is present, filter by that category too
                 if (categoryQuery) {
                     brandProducts = brandProducts.filter(
                         p => (p.category || '').toLowerCase().replace(/\s+/g, '-') === categoryQuery.toLowerCase().replace(/\s+/g, '-')
                     );
                 }
-                
+
                 // Sort by price descending to put flagships first
                 brandProducts.sort((a, b) => b.price - a.price);
-                
+
                 setAllProducts(brandProducts);
             } catch {
                 setError('Failed to load products');
@@ -80,13 +80,13 @@ const BrandPage = () => {
             <div className="brand-container">
                 {/* Breadcrumbs */}
                 <nav className="breadcrumbs" style={{ padding: '20px 0 0', fontSize: '0.875rem', color: '#a1a1a6', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <Link to="/" style={{ color: '#a1a1a6', textDecoration: 'none', transition: 'color 0.2s' }} onMouseOver={e => e.target.style.color='#fff'} onMouseOut={e => e.target.style.color='#a1a1a6'}>
+                    <Link to="/" style={{ color: '#a1a1a6', textDecoration: 'none', transition: 'color 0.2s' }} onMouseOver={e => e.target.style.color = '#fff'} onMouseOut={e => e.target.style.color = '#a1a1a6'}>
                         Home
                     </Link>
                     {categoryQuery && (
                         <>
                             <span>›</span>
-                            <Link to={`/category/${categoryQuery}`} style={{ color: '#a1a1a6', textDecoration: 'none', textTransform: 'capitalize', transition: 'color 0.2s' }} onMouseOver={e => e.target.style.color='#fff'} onMouseOut={e => e.target.style.color='#a1a1a6'}>
+                            <Link to={`/category/${categoryQuery}`} style={{ color: '#a1a1a6', textDecoration: 'none', textTransform: 'capitalize', transition: 'color 0.2s' }} onMouseOver={e => e.target.style.color = '#fff'} onMouseOut={e => e.target.style.color = '#a1a1a6'}>
                                 {categoryQuery}
                             </Link>
                         </>
@@ -107,8 +107,8 @@ const BrandPage = () => {
                 {/* Horizontal Navigation Tabs */}
                 <nav className="shop-tabs-nav">
                     {tabs.map(tab => (
-                        <button 
-                            key={tab} 
+                        <button
+                            key={tab}
                             className={`shop-tab ${activeTab === tab ? 'active' : ''}`}
                             onClick={() => setActiveTab(tab)}
                         >
@@ -136,21 +136,21 @@ const BrandPage = () => {
                     <div className="shop-grid">
                         {allProducts.map((product, idx) => {
                             // Determine if this product should get a "NEW" badge
-                            const isNew = idx < 2 && meta.isNew; 
-                            
+                            const isNew = idx < 2 && meta.isNew;
+
                             return (
-                                <Link 
-                                    to={`/product/${product._id || product.id}`} 
-                                    key={product._id || product.id} 
+                                <Link
+                                    to={`/product/${product._id || product.id}`}
+                                    key={product._id || product.id}
                                     className="shop-card"
                                 >
                                     <div className="shop-card-info">
                                         {isNew && <div className="shop-card-badge">NEW</div>}
                                         <div className="shop-card-title">{product.name}</div>
                                         <div className="shop-card-price">From ₹{product.price?.toLocaleString('en-IN')}</div>
-                                        
+
                                         <div className="shop-card-actions">
-                                            <button 
+                                            <button
                                                 className="btn-buy"
                                                 onClick={(e) => {
                                                     e.preventDefault();
@@ -162,12 +162,12 @@ const BrandPage = () => {
                                             </button>
                                         </div>
                                     </div>
-                                    
+
                                     <div className="shop-card-image">
                                         {product.image && product.image.startsWith('/') ? (
                                             <img src={product.image} alt={product.name} />
                                         ) : (
-                                            <svg width="80" height="80" viewBox="0 0 24 24" fill="none" stroke="#333" strokeWidth="1" strokeLinecap="round" strokeLinejoin="round"><rect x="5" y="2" width="14" height="20" rx="2" ry="2"/><line x1="12" y1="18" x2="12.01" y2="18"/></svg>
+                                            <svg width="80" height="80" viewBox="0 0 24 24" fill="none" stroke="#333" strokeWidth="1" strokeLinecap="round" strokeLinejoin="round"><rect x="5" y="2" width="14" height="20" rx="2" ry="2" /><line x1="12" y1="18" x2="12.01" y2="18" /></svg>
                                         )}
                                     </div>
                                 </Link>
@@ -175,7 +175,7 @@ const BrandPage = () => {
                         })}
                     </div>
                 )}
-                
+
                 {/* Placeholders for other tabs */}
                 {!loading && !error && activeTab !== 'All Models' && (
                     <div style={{ color: '#6e6e73', padding: '40px 0', minHeight: '300px' }}>

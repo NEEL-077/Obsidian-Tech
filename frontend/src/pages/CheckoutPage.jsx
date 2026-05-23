@@ -4,6 +4,7 @@ import { useCart } from '../context/CartContext';
 import { useAuth } from '../context/AuthContext';
 import { createOrder, payOrder } from '../api/orderApi';
 import PaymentGateway from '../components/PaymentGateway';
+import { useToast } from '../context/ToastContext';
 import './CheckoutPage.css';
 import '../components/PaymentGateway.css';
 
@@ -11,6 +12,7 @@ const CheckoutPage = () => {
     const navigate = useNavigate();
     const { cartItems, clearCart } = useCart();
     const { user } = useAuth();
+    const { showToast } = useToast();
 
     useEffect(() => {
         if (!user) navigate('/auth');
@@ -18,8 +20,9 @@ const CheckoutPage = () => {
     }, [user, cartItems, navigate]);
 
     const subtotal = cartItems.reduce((sum, item) => sum + (item.price * item.quantity), 0);
-    const shipping = subtotal > 50000 ? 0 : 500;
-    const orderTotal = subtotal + shipping;
+    const vipDiscount = user?.isVip ? Math.floor(subtotal * 0.15) : 0;
+    const shipping = (subtotal - vipDiscount) > 50000 ? 0 : 500;
+    const orderTotal = subtotal - vipDiscount + shipping;
 
     const [currentStep, setCurrentStep] = useState(1);
     const [createdOrder, setCreatedOrder] = useState(null);
@@ -67,7 +70,8 @@ const CheckoutPage = () => {
             setCreatedOrder(order);
             setCurrentStep(2);
         } catch (error) {
-            alert('Error creating order');
+            const errorMsg = error.response?.data?.message || error.message || 'Error creating order';
+            showToast(errorMsg, 'error');
         }
     };
 
@@ -75,10 +79,10 @@ const CheckoutPage = () => {
         try {
             await payOrder(createdOrder._id, paymentResult);
             clearCart();
-            alert('Order placed successfully!');
+            showToast('Order placed successfully!', 'success');
             navigate('/profile');
         } catch (error) {
-            alert('Payment failed');
+            showToast('Payment failed', 'error');
         }
     };
 
@@ -155,7 +159,7 @@ const CheckoutPage = () => {
                         <PaymentGateway
                             orderData={createdOrder}
                             onSuccess={handlePaymentSuccess}
-                            onError={(err) => alert(err)}
+                            onError={(err) => showToast(err, 'error')}
                         />
                     </div>
                 )}
@@ -176,6 +180,12 @@ const CheckoutPage = () => {
                             <span>Subtotal</span>
                             <span>₹{subtotal.toLocaleString('en-IN')}</span>
                         </div>
+                        {user?.isVip && (
+                            <div className="summary-row" style={{ color: '#FDB931', fontWeight: '500' }}>
+                                <span>Core Member Discount (15%)</span>
+                                <span>-₹{vipDiscount.toLocaleString('en-IN')}</span>
+                            </div>
+                        )}
                         <div className="summary-row">
                             <span>Shipping</span>
                             <span>{shipping === 0 ? 'FREE' : `₹${shipping.toLocaleString('en-IN')}`}</span>

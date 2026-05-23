@@ -1,7 +1,10 @@
 import React, { useState } from 'react';
+import { useAuth } from '../context/AuthContext';
 
 const PaymentGateway = ({ orderData, onSuccess, onError }) => {
+    const { user } = useAuth();
     const [processing, setProcessing] = useState(false);
+    const totalPrice = orderData?.totalPrice !== undefined ? orderData.totalPrice : (orderData?.total_price || 0);
 
     const handlePayment = async (paymentMethod) => {
         setProcessing(true);
@@ -10,12 +13,12 @@ const PaymentGateway = ({ orderData, onSuccess, onError }) => {
             if (paymentMethod === 'razorpay') {
                 // Razorpay integration
                 const options = {
-                    key: process.env.REACT_APP_RAZORPAY_KEY_ID || 'rzp_test_demo', // Demo key
-                    amount: orderData.totalPrice * 100, // Amount in paise
+                    key: (typeof window !== 'undefined' && window.VITE_RAZORPAY_KEY_ID) || import.meta.env.VITE_RAZORPAY_KEY_ID || 'rzp_test_demo', // Demo key
+                    amount: totalPrice * 100, // Amount in paise
                     currency: 'INR',
                     name: 'OBSIDIAN TECH',
-                    description: `Order #${orderData._id}`,
-                    order_id: orderData._id,
+                    description: `Order #${orderData?._id || orderData?.id || ''}`,
+                    order_id: orderData?._id || orderData?.id || '',
                     handler: function (response) {
                         // Payment successful
                         onSuccess({
@@ -26,9 +29,9 @@ const PaymentGateway = ({ orderData, onSuccess, onError }) => {
                         });
                     },
                     prefill: {
-                        name: orderData.userName,
-                        email: orderData.userEmail,
-                        contact: orderData.shippingAddress.phone || ''
+                        name: orderData?.userName || user?.name || '',
+                        email: orderData?.userEmail || user?.email || '',
+                        contact: orderData?.shippingAddress?.phone || orderData?.shipping_address?.phone || user?.phone || ''
                     },
                     theme: {
                         color: '#667eea'
@@ -146,7 +149,7 @@ const PaymentGateway = ({ orderData, onSuccess, onError }) => {
                 <h4>Payment Summary</h4>
                 <div className="summary-row">
                     <span>Order Total</span>
-                    <span>₹{orderData.totalPrice.toLocaleString()}</span>
+                    <span>₹{totalPrice.toLocaleString('en-IN')}</span>
                 </div>
                 <div className="summary-note">
                     <p>🔒 Your payment information is secure and encrypted</p>
