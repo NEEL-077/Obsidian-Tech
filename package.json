@@ -19,7 +19,7 @@
     "express",
     "ai"
   ],
-  "author": "",
+  "author": "NEEL LUVANI",
   "license": "MIT",
   "devDependencies": {
     "concurrently": "^8.2.2"
