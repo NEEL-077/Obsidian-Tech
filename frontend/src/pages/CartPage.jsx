@@ -1,6 +1,7 @@
 import React from 'react';
 import { useCart } from '../context/CartContext';
 import SEO from '../components/SEO';
+import { Link } from 'react-router-dom';
 import './CartPage.css';
 
 const CartPage = () => {
@@ -23,79 +24,69 @@ const CartPage = () => {
                 noIndex={true}
             />
             <div className="container">
-                <h1>Shopping Cart</h1>
-                <p className="cart-count">{cartItems.length} items in your cart</p>
+                <h1 className="cart-title">Review your bag.</h1>
 
-                <div className="cart-layout">
-                    {/* Cart Items */}
-                    <div className="cart-items-section">
-                        {cartItems.length === 0 ? (
-                            <div className="empty-cart">
-                                <span className="empty-icon">🛒</span>
-                                <h3>Your cart is empty</h3>
-                                <p>Add some products to get started!</p>
-                                <a href="/products" className="btn btn-primary">Browse Products</a>
-                            </div>
-                        ) : (
-                            <div className="cart-items-list">
-                                {cartItems.map(item => (
-                                    <div key={item.id} className="cart-item">
-                                        <div className="item-image">
-                                            {item.image.startsWith('/') ? (
-                                                <img src={item.image} alt={item.name} className="cart-item-img" />
-                                            ) : (
-                                                <span>{item.image}</span>
-                                            )}
-                                        </div>
-                                        <div className="item-details">
-                                            <h3>{item.name}</h3>
-                                            {item.isBundle && item.bundleContents && (
-                                                <p className="bundle-contents">📦 Includes: {item.bundleContents}</p>
-                                            )}
-                                            <p className="item-brand">{item.brand}</p>
-                                            <p className="item-price">₹{item.price.toLocaleString('en-IN')}</p>
-                                        </div>
-                                        <div className="item-quantity">
-                                            <button onClick={() => updateQuantity(item.id, -1)}>−</button>
-                                            <span>{item.quantity}</span>
-                                            <button onClick={() => updateQuantity(item.id, 1)}>+</button>
-                                        </div>
-                                        <div className="item-total">
-                                            <p className="total-price">₹{(item.price * item.quantity).toLocaleString('en-IN')}</p>
-                                            <button className="remove-btn" onClick={() => removeItem(item.id)}>Remove</button>
-                                        </div>
-                                    </div>
-                                ))}
-                            </div>
-                        )}
+                {cartItems.length === 0 ? (
+                    <div className="cart-empty">
+                        <div className="cart-empty-icon">🛍️</div>
+                        <h2>Your bag is empty.</h2>
+                        <p>Sign in to see if you have any saved items.</p>
+                        <Link to="/products" className="btn btn-primary btn-lg" style={{ marginTop: '20px' }}>Continue Shopping</Link>
                     </div>
+                ) : (
+                    <>
+                        <div className="cart-items">
+                            {cartItems.map(item => (
+                                <div key={item.id} className="cart-item">
+                                    <div className="cart-item-image">
+                                        {item.image.startsWith('/') ? (
+                                            <img src={item.image} alt={item.name} />
+                                        ) : (
+                                            <span style={{ fontSize: '3rem' }}>{item.image}</span>
+                                        )}
+                                    </div>
+                                    <div className="cart-item-details">
+                                        <div className="cart-item-brand">{item.brand}</div>
+                                        <div className="cart-item-name">{item.name}</div>
+                                        <div className="cart-item-price">₹{item.price.toLocaleString('en-IN')}</div>
+                                    </div>
+                                    <div className="cart-qty-controls">
+                                        <button className="qty-btn" onClick={() => updateQuantity(item.id, -1)}>−</button>
+                                        <span className="qty-value">{item.quantity}</span>
+                                        <button className="qty-btn" onClick={() => updateQuantity(item.id, 1)}>+</button>
+                                    </div>
+                                    <button className="cart-remove-btn" onClick={() => removeItem(item.id)} title="Remove">
+                                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                            <path d="M18 6L6 18M6 6l12 12" />
+                                        </svg>
+                                    </button>
+                                </div>
+                            ))}
+                        </div>
 
-                    {/* Order Summary */}
-                    {cartItems.length > 0 && (
-                        <div className="order-summary">
-                            <h3>Order Summary</h3>
-                            <div className="summary-row">
-                                <span>Subtotal <small>(incl. GST)</small></span>
+                        <div className="cart-summary">
+                            <h3 className="cart-summary-title">Order Summary</h3>
+                            <div className="cart-summary-row">
+                                <span>Subtotal</span>
                                 <span>₹{subtotal.toLocaleString('en-IN')}</span>
                             </div>
-                            <div className="summary-row">
-                                <span>Shipping</span>
+                            <div className="cart-summary-row">
+                                <span>Estimated Shipping</span>
                                 <span>{shipping === 0 ? 'FREE' : `₹${shipping.toLocaleString('en-IN')}`}</span>
                             </div>
-                            <div className="summary-divider"></div>
-                            <div className="summary-row total-row">
+                            <div className="cart-summary-total">
                                 <span>Total</span>
                                 <span>₹{total.toLocaleString('en-IN')}</span>
                             </div>
-                            <a href="/checkout" className="btn btn-primary btn-lg checkout-btn">
-                                Proceed to Checkout
-                            </a>
-                            <a href="/products" className="btn btn-outline continue-shopping">
+                            <Link to="/checkout" className="checkout-btn">
+                                Check Out
+                            </Link>
+                            <Link to="/products" className="cart-continue-link">
                                 Continue Shopping
-                            </a>
+                            </Link>
                         </div>
-                    )}
-                </div>
+                    </>
+                )}
             </div>
         </div>
     );

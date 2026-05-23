@@ -1,4 +1,5 @@
 const supabase = require('../config/supabase');
+
 // @desc    Fetch all products with advanced filtering
 // @route   GET /api/products
 // @access  Public
@@ -11,7 +12,10 @@ const getProducts = async (req, res) => {
             sortBy = 'name',
             sortOrder = 'asc',
             pageNumber = 1,
-            pageSize = 12
+            pageSize = 12,
+            // BUG #9 FIX: Accept minPrice and maxPrice from query and apply them to the query
+            minPrice,
+            maxPrice,
         } = req.query;
 
         let query = supabase.from('products').select('*', { count: 'exact' });
@@ -24,6 +28,14 @@ const getProducts = async (req, res) => {
         }
         if (category) {
             query = query.ilike('category', `%${category}%`);
+        }
+
+        // BUG #9 FIX: Apply price range filters
+        if (minPrice !== undefined && minPrice !== '') {
+            query = query.gte('price', Number(minPrice));
+        }
+        if (maxPrice !== undefined && maxPrice !== '') {
+            query = query.lte('price', Number(maxPrice));
         }
 
         // Sorting
@@ -44,41 +56,41 @@ const getProducts = async (req, res) => {
 
         // Fetch distinct values for filters (naive approach for now)
         const { data: allProducts } = await supabase.from('products').select('brand, category, price');
-        
+
         let brands = [];
         let categories = [];
-        let minPrice = 0;
-        let maxPrice = 9999;
+        let minPriceVal = 0;
+        let maxPriceVal = 9999;
 
         if (allProducts) {
             brands = [...new Set(allProducts.map(p => p.brand).filter(Boolean))].sort();
             categories = [...new Set(allProducts.map(p => p.category).filter(Boolean))].sort();
             const prices = allProducts.map(p => p.price);
             if (prices.length > 0) {
-                minPrice = Math.min(...prices);
-                maxPrice = Math.max(...prices);
+                minPriceVal = Math.min(...prices);
+                maxPriceVal = Math.max(...prices);
             }
         }
 
         // Map id to _id for frontend compatibility, and snake_case to camelCase
-        const mappedProducts = products ? products.map(p => ({ 
-            ...p, 
+        const mappedProducts = products ? products.map(p => ({
+            ...p,
             _id: p.id,
             image: p.image_url,
             countInStock: p.count_in_stock,
             numReviews: p.num_reviews
         })) : [];
 
-        res.json({ 
-            products: mappedProducts, 
-            page, 
+        res.json({
+            products: mappedProducts,
+            page,
             pages: Math.ceil((count || 0) / limit) || 1,
             total: count || 0,
             filters: {
                 brands,
                 categories,
                 subcategories: [],
-                priceRange: { min: minPrice, max: maxPrice }
+                priceRange: { min: minPriceVal, max: maxPriceVal }
             }
         });
     } catch (error) {
@@ -99,20 +111,20 @@ const getProductById = async (req, res) => {
             .single();
 
         if (error) throw error;
-        
+
         if (product) {
             // Frontend expects _id and camelCase
-            res.json({ 
-                ...product, 
+            res.json({
+                ...product,
                 _id: product.id,
                 image: product.image_url,
                 countInStock: product.count_in_stock,
-                numReviews: product.num_reviews 
+                numReviews: product.num_reviews
             });
         } else {
             res.status(404).json({ message: 'Product not found' });
         }
-    } catch(err) {
+    } catch (err) {
         res.status(404).json({ message: 'Product not found' });
     }
 };
@@ -120,138 +132,25 @@ const getProductById = async (req, res) => {
 // @desc    Create new review
 // @route   POST /api/products/:id/reviews
 // @access  Private
+// NOTE: Requires a 'reviews' table in Supabase. Not yet implemented.
 const createProductReview = async (req, res) => {
-    try {
-        const { rating, comment, images } = req.body;
-        const product = await Product.findById(req.params.id);
-
-        if (!product) return res.status(404).json({ message: 'Product not found' });
-
-        const alreadyReviewed = product.reviews.find(r => String(r.user) === String(req.user._id));
-        if (alreadyReviewed) return res.status(400).json({ message: 'Product already reviewed' });
-
-        const review = {
-            name: req.user.name,
-            rating: Number(rating),
-            comment,
-            images: images || [],
-            user: req.user._id,
-            verified: false,
-            status: 'pending'
-        };
-
-        const userOrders = await Order.find({ user: req.user._id, isPaid: true });
-        const hasPurchased = userOrders.some(order => 
-            order.orderItems.some(item => String(item.product) === String(req.params.id))
-        );
-        
-        if (hasPurchased) {
-            review.verified = true;
-            review.status = 'approved';
-        }
-
-        product.reviews.push(review);
-        product.numReviews = product.reviews.length;
-        product.rating = product.reviews.reduce((acc, r) => r.rating + acc, 0) / product.reviews.length;
-
-        await product.save();
-        res.status(201).json({ message: 'Review added successfully', review });
-    } catch (err) {
-        res.status(400).json({ message: err.message });
-    }
+    res.status(501).json({ message: 'Product reviews require a reviews table in Supabase. Not yet implemented.' });
 };
 
 // @desc    Vote on review helpfulness
 // @route   POST /api/products/:id/reviews/:reviewId/vote
 // @access  Private
+// NOTE: Requires a 'reviews' table in Supabase. Not yet implemented.
 const voteOnReview = async (req, res) => {
-    try {
-        const { helpful } = req.body;
-        const product = await Product.findById(req.params.id);
-        
-        if (!product) return res.status(404).json({ message: 'Product not found' });
-        
-        const review = product.reviews.id(req.params.reviewId);
-        if (!review) return res.status(404).json({ message: 'Review not found' });
-        
-        const existingVoteIndex = review.helpfulVotes.findIndex(vote => String(vote.user) === String(req.user._id));
-        
-        if (existingVoteIndex !== -1) {
-            const oldVote = review.helpfulVotes[existingVoteIndex];
-            if (oldVote.helpful) review.helpful--;
-            else review.notHelpful--;
-            
-            review.helpfulVotes[existingVoteIndex] = {
-                user: req.user._id,
-                helpful: helpful,
-                votedAt: new Date()
-            };
-        } else {
-            review.helpfulVotes.push({
-                user: req.user._id,
-                helpful: helpful,
-                votedAt: new Date()
-            });
-        }
-        
-        if (helpful) review.helpful++;
-        else review.notHelpful++;
-        
-        await product.save();
-        res.json({ message: 'Vote recorded successfully' });
-    } catch (error) {
-        res.status(400).json({ message: error.message });
-    }
+    res.status(501).json({ message: 'Review voting requires a reviews table in Supabase. Not yet implemented.' });
 };
 
 // @desc    Get product reviews with filtering and sorting
 // @route   GET /api/products/:id/reviews
 // @access  Public
+// NOTE: Requires a 'reviews' table in Supabase. Not yet implemented.
 const getProductReviews = async (req, res) => {
-    try {
-        const { rating, sortBy = 'newest', page = 1, limit = 10 } = req.query;
-        const product = await Product.findById(req.params.id);
-        
-        if (!product) return res.status(404).json({ message: 'Product not found' });
-        
-        let reviews = product.reviews.filter(review => review.status === 'approved');
-        
-        if (rating) {
-            reviews = reviews.filter(review => review.rating === Number(rating));
-        }
-        
-        switch (sortBy) {
-            case 'helpful': reviews.sort((a, b) => b.helpful - a.helpful); break;
-            case 'rating-high': reviews.sort((a, b) => b.rating - a.rating); break;
-            case 'rating-low': reviews.sort((a, b) => a.rating - b.rating); break;
-            case 'oldest': reviews.sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt)); break;
-            case 'newest':
-            default: reviews.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
-        }
-        
-        const startIndex = (page - 1) * limit;
-        const endIndex = startIndex + Number(limit);
-        const paginatedReviews = reviews.slice(startIndex, endIndex);
-        
-        const ratingDistribution = {
-            5: reviews.filter(r => r.rating === 5).length,
-            4: reviews.filter(r => r.rating === 4).length,
-            3: reviews.filter(r => r.rating === 3).length,
-            2: reviews.filter(r => r.rating === 2).length,
-            1: reviews.filter(r => r.rating === 1).length
-        };
-        
-        res.json({
-            reviews: paginatedReviews,
-            totalReviews: reviews.length,
-            currentPage: Number(page),
-            totalPages: Math.ceil(reviews.length / limit),
-            ratingDistribution,
-            averageRating: product.rating
-        });
-    } catch (error) {
-        res.status(400).json({ message: error.message });
-    }
+    res.status(501).json({ message: 'Product reviews require a reviews table in Supabase. Not yet implemented.' });
 };
 
 // @desc    Create a product
@@ -259,16 +158,24 @@ const getProductReviews = async (req, res) => {
 // @access  Private/Admin
 const createProduct = async (req, res) => {
     try {
-        const { name, brand, price, description, category, image, countInStock, inStock } = req.body;
-        
+        const { 
+            name, brand, price, description, category, image, countInStock, inStock,
+            originalPrice, series, discountPeriod, baseStorage, ram
+        } = req.body;
+
         const { data, error } = await supabase
             .from('products')
             .insert([{
                 name: name || 'Sample name',
                 price: price || 0,
+                original_price: originalPrice || null,
                 image_url: image || '/images/sample.jpg',
                 brand: brand || 'Sample brand',
                 category: category || 'Sample category',
+                series: series || null,
+                discount_period: discountPeriod || null,
+                base_storage: baseStorage || null,
+                ram: ram || null,
                 count_in_stock: countInStock || 0,
                 description: description || 'Sample description',
                 rating: 0,
@@ -279,7 +186,7 @@ const createProduct = async (req, res) => {
         if (error) throw error;
         const createdProduct = data[0];
         res.status(201).json({ ...createdProduct, _id: createdProduct.id });
-    } catch(err) {
+    } catch (err) {
         res.status(400).json({ message: err.message });
     }
 };
@@ -289,15 +196,23 @@ const createProduct = async (req, res) => {
 // @access  Private/Admin
 const updateProduct = async (req, res) => {
     try {
-        const { name, price, description, image, brand, category, countInStock } = req.body;
+        const { 
+            name, price, description, image, brand, category, countInStock,
+            originalPrice, series, discountPeriod, baseStorage, ram
+        } = req.body;
         const updateData = {};
-        
+
         if (name !== undefined) updateData.name = name;
         if (price !== undefined) updateData.price = price;
+        if (originalPrice !== undefined) updateData.original_price = originalPrice;
         if (description !== undefined) updateData.description = description;
         if (image !== undefined) updateData.image_url = image;
         if (brand !== undefined) updateData.brand = brand;
         if (category !== undefined) updateData.category = category;
+        if (series !== undefined) updateData.series = series;
+        if (discountPeriod !== undefined) updateData.discount_period = discountPeriod;
+        if (baseStorage !== undefined) updateData.base_storage = baseStorage;
+        if (ram !== undefined) updateData.ram = ram;
         if (countInStock !== undefined) updateData.count_in_stock = countInStock;
 
         const { data, error } = await supabase
@@ -308,10 +223,10 @@ const updateProduct = async (req, res) => {
 
         if (error) throw error;
         if (!data || data.length === 0) return res.status(404).json({ message: 'Product not found' });
-        
+
         const updatedProduct = data[0];
         res.json({ ...updatedProduct, _id: updatedProduct.id });
-    } catch(err) {
+    } catch (err) {
         res.status(400).json({ message: err.message });
     }
 };
@@ -328,7 +243,7 @@ const deleteProduct = async (req, res) => {
 
         if (error) throw error;
         res.json({ message: 'Product removed' });
-    } catch(err) {
+    } catch (err) {
         res.status(400).json({ message: err.message });
     }
 };
@@ -339,19 +254,26 @@ const deleteProduct = async (req, res) => {
 const updateProductInventory = async (req, res) => {
     try {
         const { countInStock, lowStockThreshold = 5 } = req.body;
-        const product = await Product.findById(req.params.id);
-        
-        if (!product) {
+        const newCount = Number(countInStock);
+
+        const { data, error } = await supabase
+            .from('products')
+            .update({ count_in_stock: newCount })
+            .eq('id', req.params.id)
+            .select()
+            .single();
+
+        if (error || !data) {
             return res.status(404).json({ message: 'Product not found' });
         }
 
-        product.countInStock = Number(countInStock);
-        product.lowStockThreshold = Number(lowStockThreshold);
-        product.lowStock = product.countInStock <= product.lowStockThreshold && product.countInStock > 0;
-        product.outOfStock = product.countInStock === 0;
-
-        const updatedProduct = await product.save();
-        res.json(updatedProduct);
+        res.json({
+            ...data,
+            _id: data.id,
+            countInStock: data.count_in_stock,
+            lowStock: data.count_in_stock <= Number(lowStockThreshold) && data.count_in_stock > 0,
+            outOfStock: data.count_in_stock === 0,
+        });
     } catch (error) {
         res.status(400).json({ message: error.message });
     }
@@ -362,14 +284,19 @@ const updateProductInventory = async (req, res) => {
 // @access  Private/Admin
 const getLowStockProducts = async (req, res) => {
     try {
-        const products = await Product.find({
-            $or: [
-                { lowStock: true },
-                { outOfStock: true },
-                { countInStock: { $lte: 5 } }
-            ]
-        });
-        res.json(products);
+        const { data: products, error } = await supabase
+            .from('products')
+            .select('*')
+            .lte('count_in_stock', 5);
+
+        if (error) throw error;
+
+        res.json((products || []).map(p => ({
+            ...p,
+            _id: p.id,
+            countInStock: p.count_in_stock,
+            image: p.image_url,
+        })));
     } catch (error) {
         res.status(400).json({ message: error.message });
     }
@@ -380,15 +307,23 @@ const getLowStockProducts = async (req, res) => {
 // @access  Private/Admin
 const getInventoryReport = async (req, res) => {
     try {
-        const products = await Product.find({});
-        
+        const { data: products, error } = await supabase
+            .from('products')
+            .select('*');
+
+        if (error) throw error;
+
         const report = {
             totalProducts: products.length,
-            inStock: products.filter(p => p.countInStock > 5).length,
-            lowStock: products.filter(p => (p.lowStock || p.countInStock <= 5) && p.countInStock > 0).length,
-            outOfStock: products.filter(p => p.countInStock === 0).length,
-            totalInventoryValue: products.reduce((sum, p) => sum + (p.price * p.countInStock), 0),
-            lowStockProducts: products.filter(p => p.lowStock || p.countInStock <= 5),
+            inStock: products.filter(p => p.count_in_stock > 5).length,
+            lowStock: products.filter(p => p.count_in_stock <= 5 && p.count_in_stock > 0).length,
+            outOfStock: products.filter(p => p.count_in_stock === 0).length,
+            totalInventoryValue: products.reduce((sum, p) => sum + (p.price * p.count_in_stock), 0),
+            lowStockProducts: products.filter(p => p.count_in_stock <= 5).map(p => ({
+                ...p,
+                _id: p.id,
+                countInStock: p.count_in_stock,
+            })),
             categories: {}
         };
 
@@ -398,10 +333,10 @@ const getInventoryReport = async (req, res) => {
             }
             const cat = report.categories[product.category];
             cat.total++;
-            cat.value += product.price * product.countInStock;
-            
-            if (product.countInStock === 0) cat.outOfStock++;
-            else if (product.countInStock <= 5) cat.lowStock++;
+            cat.value += product.price * product.count_in_stock;
+
+            if (product.count_in_stock === 0) cat.outOfStock++;
+            else if (product.count_in_stock <= 5) cat.lowStock++;
             else cat.inStock++;
         });
 
@@ -411,11 +346,11 @@ const getInventoryReport = async (req, res) => {
     }
 };
 
-module.exports = { 
-    getProducts, 
-    getProductById, 
-    createProduct, 
-    updateProduct, 
+module.exports = {
+    getProducts,
+    getProductById,
+    createProduct,
+    updateProduct,
     deleteProduct,
     updateProductInventory,
     getLowStockProducts,

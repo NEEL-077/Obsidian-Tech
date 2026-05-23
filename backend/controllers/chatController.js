@@ -1,4 +1,4 @@
-
+const supabase = require('../config/supabase');
 
 // ─── Intent Detection ─────────────────────────────────────────────────────────
 
@@ -49,22 +49,26 @@ function detectIntent(message) {
 
 // ─── Extraction Helpers ───────────────────────────────────────────────────────
 
+// BUG #8 FIX: Use the matched token from the regex instead of checking msg.includes('k'),
+// which was causing false positives on common words like "black", "make", "like", etc.
 function extractBudget(message) {
   const msg = message.toLowerCase().replace(/,/g, '');
 
-  // Patterns like "under 20000", "below 15k", "around 30000", "budget of 25000"
+  // Patterns that capture the numeric value and optionally a 'k' suffix within the same token
   const patterns = [
-    /(?:under|below|less than|upto|within|max(?:imum)?|budget (?:of|is|around)?)\s*(?:rs\.?|₹|inr)?\s*(\d+)\s*k?\b/i,
-    /(?:rs\.?|₹|inr)\s*(\d+)\s*k?\b/i,
-    /(\d+)\s*k\b/i,
-    /(\d+)\s*(?:thousand)/i,
+    /(?:under|below|less than|upto|within|max(?:imum)?|budget (?:of|is|around)?)\s*(?:rs\.?|₹|inr)?\s*(\d+)\s*(k?)\b/i,
+    /(?:rs\.?|₹|inr)\s*(\d+)\s*(k?)\b/i,
+    /(\d+)\s*(k)\b/i,      // only match if followed directly by 'k'
+    /(\d+)\s*(thousand)/i,
   ];
 
   for (const pattern of patterns) {
     const match = msg.match(pattern);
     if (match) {
       let amount = parseInt(match[1]);
-      if (msg.includes('k') || msg.includes('thousand')) amount *= 1000;
+      // BUG #8 FIX: use the captured suffix (match[2]) instead of msg.includes('k')
+      const suffix = (match[2] || '').toLowerCase();
+      if (suffix === 'k' || suffix === 'thousand') amount *= 1000;
       if (amount < 500) amount *= 1000; // "20" likely means "20000"
       return amount;
     }
@@ -106,52 +110,65 @@ function extractFeatures(message) {
   return features;
 }
 
-function extractPhoneNames(message) {
-  // Extract 2+ proper-noun sequences that look like phone model names
-  const matches = message.match(/([A-Z][a-zA-Z0-9]+(?:\s+[A-Z][a-zA-Z0-9]+){0,4})/g);
-  return matches ? matches.filter(m => m.length > 3) : [];
-}
-
-// ─── DB Queries ───────────────────────────────────────────────────────────────
+// ─── DB Queries (Supabase) ────────────────────────────────────────────────────
 
 async function getRecommendations({ budget, brand, features, limit = 5 }) {
-  const query = { countInStock: { $gt: 0 } };
+  let query = supabase
+    .from('products')
+    .select('*')
+    .gt('count_in_stock', 0)
+    .order('rating', { ascending: false });
 
   if (budget) {
-    query.price = { $lte: budget };
+    query = query.lte('price', budget);
   }
-
   if (brand) {
-    query.brand = { $regex: new RegExp(brand, 'i') };
+    query = query.ilike('brand', `%${brand}%`);
   }
 
-  let products = await Product.find(query)
-    .sort({ rating: -1, isBestSeller: -1 })
-    .limit(limit * 3) // over-fetch to allow feature filtering
-    .lean();
+  // Fetch more than needed so we can filter by features in JS
+  query = query.limit(limit * 3);
+
+  const { data: products, error } = await query;
+  if (error) {
+    console.error('[Chat] getRecommendations error:', error.message);
+    return [];
+  }
+
+  let result = products || [];
 
   // Feature-based text filtering
   if (features.length > 0) {
-    products = products.filter(p => {
-      const text = `${p.name} ${p.description} ${JSON.stringify(p.specs)}`.toLowerCase();
+    result = result.filter(p => {
+      const text = `${p.name} ${p.description} ${JSON.stringify(p.specs || {})}`.toLowerCase();
       return features.some(f => text.includes(f));
     });
   }
 
-  return products.slice(0, limit);
+  return result.slice(0, limit).map(p => ({ ...p, _id: p.id, image: p.image_url, countInStock: p.count_in_stock }));
 }
 
 async function getProductDetail(name) {
   const words = name.split(' ').filter(w => w.length > 2);
-  const regexParts = words.map(w => `(?=.*${w})`).join('');
-  const regex = new RegExp(regexParts, 'i');
+  if (words.length === 0) return null;
 
-  const product = await Product.findOne({
-    name: { $regex: regex },
-    countInStock: { $gt: 0 },
-  }).lean();
+  // Use ilike on name for the most significant word, then filter in JS
+  const { data: products, error } = await supabase
+    .from('products')
+    .select('*')
+    .ilike('name', `%${words[0]}%`)
+    .gt('count_in_stock', 0)
+    .limit(20);
 
-  return product;
+  if (error || !products) return null;
+
+  // Find best match: product whose name contains all the words
+  const match = products.find(p => {
+    const pName = p.name.toLowerCase();
+    return words.every(w => pName.includes(w.toLowerCase()));
+  });
+
+  return match ? { ...match, _id: match.id, image: match.image_url, countInStock: match.count_in_stock } : null;
 }
 
 async function getComparisonProducts(message) {
@@ -167,10 +184,18 @@ async function getComparisonProducts(message) {
     const words = part.split(/\s+/).filter(w => w.length > 2);
     if (!words.length) continue;
 
-    const regexParts = words.map(w => `(?=.*${w})`).join('');
-    const regex = new RegExp(regexParts, 'i');
-    const p = await Product.findOne({ name: { $regex: regex } }).lean();
-    if (p) products.push(p);
+    const { data, error } = await supabase
+      .from('products')
+      .select('*')
+      .ilike('name', `%${words[0]}%`)
+      .limit(10);
+
+    if (!error && data) {
+      const match = data.find(p =>
+        words.every(w => p.name.toLowerCase().includes(w.toLowerCase()))
+      );
+      if (match) products.push({ ...match, _id: match.id, image: match.image_url });
+    }
   }
 
   return products;
@@ -229,7 +254,6 @@ const chat = async (req, res) => {
       const products = await getRecommendations({ budget, brand, features });
 
       if (products.length === 0) {
-        // Fallback — remove strict filters
         const fallback = await getRecommendations({ budget: budget ? budget * 1.3 : null, brand: null, features: [] });
         const budgetText = budget ? ` around ${formatPrice(budget)}` : '';
         return res.json({
@@ -294,7 +318,6 @@ const chat = async (req, res) => {
 
     // ── Product Detail ────────────────────────────────────────────────────────
     if (intent === INTENTS.PRODUCT_DETAIL) {
-      // Try to extract phone name from message
       const cleanedMsg = message
         .replace(/tell me about|details? of|details? about|specs? of|price of|features? of|what is the/gi, '')
         .trim();

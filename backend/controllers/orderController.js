@@ -1,5 +1,4 @@
 const supabase = require('../config/supabase');
-const { sendOrderConfirmation, sendOrderStatusUpdate, sendOrderDelivered } = require('../utils/emailService');
 const { sendOrderPlacedEmail, updateOrderStatus, getOrderEmailStatus, resendOrderEmail, ORDER_STATUS } = require('../services/orderNotificationService');
 
 // @desc    Create new order
@@ -8,8 +7,8 @@ const { sendOrderPlacedEmail, updateOrderStatus, getOrderEmailStatus, resendOrde
 const addOrderItems = async (req, res) => {
     try {
         const {
-            orderItems, 
-            shippingAddress, 
+            orderItems,
+            shippingAddress,
             paymentMethod,
             totalPrice
         } = req.body;
@@ -50,6 +49,32 @@ const addOrderItems = async (req, res) => {
 
         if (itemsError) throw itemsError;
 
+        // BUG #2 FIX: Send order confirmation email after successful order creation
+        try {
+            const orderForEmail = {
+                _id: createdOrder.id,
+                userName: req.user.name,
+                userEmail: req.user.email,
+                totalPrice: createdOrder.total_price,
+                shippingPrice: 0,
+                taxPrice: 0,
+                orderItems: orderItems.map(item => ({
+                    name: item.name,
+                    qty: item.qty,
+                    price: item.price,
+                    image: item.image,
+                })),
+                shippingAddress: shippingAddress,
+                paymentMethod: paymentMethod,
+                createdAt: createdOrder.created_at || new Date().toISOString(),
+                emailNotifications: {},
+                save: async () => {} // no-op since we use Supabase not Mongoose
+            };
+            await sendOrderPlacedEmail(orderForEmail);
+        } catch (emailErr) {
+            console.error('⚠️ Order confirmation email failed (order was still created):', emailErr.message);
+        }
+
         res.status(201).json({ ...createdOrder, _id: createdOrder.id, orderItems });
     } catch (error) {
         console.error('❌ Error creating order:', error);
@@ -62,30 +87,47 @@ const addOrderItems = async (req, res) => {
 // @access  Private
 const getOrderById = async (req, res) => {
     try {
-        const order = await Order.findById(req.params.id);
-        if (order && (String(order.user) === String(req.user._id) || req.user.isAdmin)) {
-            res.json(order);
-        } else {
-            res.status(404).json({ message: 'Order not found' });
+        const { data: order, error } = await supabase
+            .from('orders')
+            .select(`*, order_items(*)`)
+            .eq('id', req.params.id)
+            .single();
+
+        if (error || !order) {
+            return res.status(404).json({ message: 'Order not found' });
         }
-    } catch(err) {
+
+        // Only allow the owner or an admin to view the order
+        if (order.user_id !== req.user._id && !req.user.isAdmin) {
+            return res.status(403).json({ message: 'Not authorized' });
+        }
+
+        res.json({
+            ...order,
+            _id: order.id,
+            isPaid: order.is_paid,
+            isDelivered: order.is_delivered,
+            orderItems: (order.order_items || []).map(i => ({
+                ...i,
+                product: i.product_id,
+                image: i.image_url,
+            })),
+        });
+    } catch (err) {
         res.status(400).json({ message: err.message });
     }
 };
 
-// @desc    Update order status
-// @route   PUT /api/orders/:id/status
-// @access  Private/Admin
 // @desc    Update order status (Admin only)
 // @route   PUT /api/orders/:id/status
 // @access  Private/Admin
 const updateOrderStatusController = async (req, res) => {
     try {
         const { status, note, trackingNumber, carrier, estimatedDelivery } = req.body;
-        
+
         // Validate status
         if (!Object.values(ORDER_STATUS).includes(status)) {
-            return res.status(400).json({ 
+            return res.status(400).json({
                 message: 'Invalid status',
                 validStatuses: Object.values(ORDER_STATUS)
             });
@@ -122,35 +164,39 @@ const updateOrderStatusController = async (req, res) => {
 // @access  Private
 const updateOrderToPaid = async (req, res) => {
     try {
-        const order = await Order.findById(req.params.id);
-        
-        if (!order) {
+        const { data: order, error: fetchError } = await supabase
+            .from('orders')
+            .select('*')
+            .eq('id', req.params.id)
+            .single();
+
+        if (fetchError || !order) {
             return res.status(404).json({ message: 'Order not found' });
         }
 
-        if (String(order.user) !== String(req.user._id) && !req.user.isAdmin) {
+        if (order.user_id !== req.user._id && !req.user.isAdmin) {
             return res.status(403).json({ message: 'Not authorized' });
         }
 
-        order.isPaid = true;
-        order.paidAt = new Date().toISOString();
-        order.paymentResult = {
-            id: req.body.id,
-            status: req.body.status,
-            update_time: req.body.update_time,
-            email_address: req.body.payer?.email_address
-        };
+        const { data: updatedOrder, error: updateError } = await supabase
+            .from('orders')
+            .update({
+                is_paid: true,
+                paid_at: new Date().toISOString(),
+                payment_result: {
+                    id: req.body.id,
+                    status: req.body.status,
+                    update_time: req.body.update_time,
+                    email_address: req.body.payer?.email_address
+                },
+                order_status: 'confirmed',
+            })
+            .eq('id', req.params.id)
+            .select()
+            .single();
 
-        if(!order.statusHistory) order.statusHistory = [];
-        order.set('orderStatus', 'confirmed');
-        order.statusHistory.push({
-            status: 'confirmed',
-            timestamp: new Date().toISOString(),
-            note: 'Payment confirmed successfully'
-        });
-
-        const updatedOrder = await order.save();
-        res.json(updatedOrder);
+        if (updateError) throw updateError;
+        res.json({ ...updatedOrder, _id: updatedOrder.id });
     } catch (error) {
         res.status(400).json({ message: error.message });
     }
@@ -161,8 +207,25 @@ const updateOrderToPaid = async (req, res) => {
 // @access  Private
 const getMyOrders = async (req, res) => {
     try {
-        const orders = await Order.find({ user: req.user._id }).sort({ createdAt: -1 });
-        res.json(orders);
+        const { data: orders, error } = await supabase
+            .from('orders')
+            .select(`*, order_items(*)`)
+            .eq('user_id', req.user._id)
+            .order('created_at', { ascending: false });
+
+        if (error) throw error;
+
+        res.json((orders || []).map(o => ({
+            ...o,
+            _id: o.id,
+            isPaid: o.is_paid,
+            isDelivered: o.is_delivered,
+            orderItems: (o.order_items || []).map(i => ({
+                ...i,
+                product: i.product_id,
+                image: i.image_url,
+            })),
+        })));
     } catch (err) {
         res.status(400).json({ message: err.message });
     }
@@ -173,9 +236,26 @@ const getMyOrders = async (req, res) => {
 // @access  Private/Admin
 const getOrders = async (req, res) => {
     try {
-        const orders = await Order.find({}).sort({ createdAt: -1 }).populate('user', 'name email');
-        res.json(orders);
-    } catch(err) {
+        const { data: orders, error } = await supabase
+            .from('orders')
+            .select(`*, order_items(*), users(name, email)`)
+            .order('created_at', { ascending: false });
+
+        if (error) throw error;
+
+        res.json((orders || []).map(o => ({
+            ...o,
+            _id: o.id,
+            isPaid: o.is_paid,
+            isDelivered: o.is_delivered,
+            user: o.users ? { name: o.users.name, email: o.users.email } : null,
+            orderItems: (o.order_items || []).map(i => ({
+                ...i,
+                product: i.product_id,
+                image: i.image_url,
+            })),
+        })));
+    } catch (err) {
         res.status(400).json({ message: err.message });
     }
 };
@@ -185,41 +265,51 @@ const getOrders = async (req, res) => {
 // @access  Private
 const cancelOrder = async (req, res) => {
     try {
-        const order = await Order.findById(req.params.id);
-        
-        if (!order) {
+        const { data: order, error: fetchError } = await supabase
+            .from('orders')
+            .select(`*, order_items(*)`)
+            .eq('id', req.params.id)
+            .single();
+
+        if (fetchError || !order) {
             return res.status(404).json({ message: 'Order not found' });
         }
 
-        if (String(order.user) !== String(req.user._id) && !req.user.isAdmin) {
+        if (order.user_id !== req.user._id && !req.user.isAdmin) {
             return res.status(403).json({ message: 'Not authorized' });
         }
 
-        const currentStatus = order.get('orderStatus');
-        if (['shipped', 'delivered'].includes(currentStatus)) {
+        const currentStatus = order.order_status || 'pending';
+        if (['shipped', 'delivered'].includes(currentStatus.toLowerCase())) {
             return res.status(400).json({ message: 'Cannot cancel shipped or delivered orders' });
         }
 
-        order.set('orderStatus', 'cancelled');
-        if(!order.statusHistory) order.statusHistory = [];
-        order.statusHistory.push({
-            status: 'cancelled',
-            timestamp: new Date().toISOString(),
-            note: req.body.reason || 'Order cancelled by customer'
-        });
+        const { data: updatedOrder, error: updateError } = await supabase
+            .from('orders')
+            .update({ order_status: 'cancelled' })
+            .eq('id', req.params.id)
+            .select()
+            .single();
 
-        // Restore product stock
-        for (const item of order.orderItems) {
-            const product = await Product.findById(item.product);
+        if (updateError) throw updateError;
+
+        // Restore product stock for each cancelled item
+        for (const item of (order.order_items || [])) {
+            const { data: product } = await supabase
+                .from('products')
+                .select('count_in_stock')
+                .eq('id', item.product_id)
+                .single();
+
             if (product) {
-                product.countInStock = product.countInStock + item.qty;
-                product.lowStock = product.countInStock <= (product.lowStockThreshold || 5) && product.countInStock > 0;
-                await product.save();
+                await supabase
+                    .from('products')
+                    .update({ count_in_stock: product.count_in_stock + item.qty })
+                    .eq('id', item.product_id);
             }
         }
 
-        const updatedOrder = await order.save();
-        res.json(updatedOrder);
+        res.json({ ...updatedOrder, _id: updatedOrder.id });
     } catch (error) {
         res.status(400).json({ message: error.message });
     }
@@ -231,7 +321,7 @@ const cancelOrder = async (req, res) => {
 const updateOrderToDelivered = async (req, res) => {
     try {
         const result = await updateOrderStatus(req.params.id, ORDER_STATUS.DELIVERED);
-        
+
         if (!result.success) {
             return res.status(404).json({ message: result.error });
         }
@@ -241,7 +331,7 @@ const updateOrderToDelivered = async (req, res) => {
             order: result.order,
             emailSent: result.emailSent,
         });
-    } catch(err) {
+    } catch (err) {
         res.status(400).json({ message: err.message });
     }
 };
@@ -252,7 +342,7 @@ const updateOrderToDelivered = async (req, res) => {
 const getOrderEmailStatusController = async (req, res) => {
     try {
         const result = await getOrderEmailStatus(req.params.id);
-        
+
         if (!result.success) {
             return res.status(404).json({ message: result.error });
         }
@@ -269,16 +359,16 @@ const getOrderEmailStatusController = async (req, res) => {
 const resendOrderEmailController = async (req, res) => {
     try {
         const { status } = req.body;
-        
+
         if (!status || !Object.values(ORDER_STATUS).includes(status)) {
-            return res.status(400).json({ 
+            return res.status(400).json({
                 message: 'Valid status is required',
                 validStatuses: Object.values(ORDER_STATUS)
             });
         }
 
         const result = await resendOrderEmail(req.params.id, status);
-        
+
         if (!result.success) {
             return res.status(400).json({ message: result.error });
         }
@@ -293,12 +383,12 @@ const resendOrderEmailController = async (req, res) => {
     }
 };
 
-module.exports = { 
-    addOrderItems, 
-    getOrderById, 
-    updateOrderToPaid, 
-    updateOrderToDelivered, 
-    getMyOrders, 
+module.exports = {
+    addOrderItems,
+    getOrderById,
+    updateOrderToPaid,
+    updateOrderToDelivered,
+    getMyOrders,
     getOrders,
     updateOrderStatus: updateOrderStatusController,
     cancelOrder,

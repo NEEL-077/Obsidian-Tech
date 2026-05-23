@@ -1,101 +1,47 @@
-/* ============================================
-   FEATURED PRODUCTS SECTION
-   ============================================ */
+/* ===================================================================
+   FEATURED PRODUCTS — Apple dark
+   =================================================================== */
 
 .featured-products {
-    background: var(--background-color, #0A0A0F);
-    position: relative;
-    overflow: hidden;
+  padding: 100px 0;
+  background: #000;
+  border-top: 1px solid rgba(255,255,255,0.08);
 }
 
-/* Subtle ambient glow in the background */
-.featured-products::before {
-    content: '';
-    position: absolute;
-    top: -120px;
-    left: 50%;
-    transform: translateX(-50%);
-    width: 900px;
-    height: 500px;
-    background: radial-gradient(ellipse, rgba(201, 162, 74, 0.07) 0%, transparent 70%);
-    pointer-events: none;
+.featured-header {
+  text-align: center;
+  margin-bottom: 50px;
 }
 
-/* Section subtitle */
-.section-subtitle {
-    text-align: center;
-    color: var(--text-secondary-color, #6B7280);
-    font-size: 1.05rem;
-    font-weight: 400;
-    margin-top: -2rem;
-    margin-bottom: 3rem;
-    max-width: 520px;
-    margin-left: auto;
-    margin-right: auto;
-    line-height: 1.6;
+.featured-title {
+  font-size: clamp(2rem, 4vw, 3rem);
+  font-weight: 800;
+  color: #f5f5f7;
+  letter-spacing: -0.03em;
+  margin-bottom: 12px;
 }
 
-/* ---- Products Grid: always 4 columns, zero leftover space ---- */
-/* Scoped inside the wrapper to avoid conflicts with AdminPage.css */
-.featured-products-grid-wrapper .products-grid {
-    display: grid;
-    grid-template-columns: repeat(4, minmax(0, 1fr));
-    gap: 1.25rem;
-    margin-bottom: 0;
-    width: 100%;
-    box-sizing: border-box;
-    max-height: none;
-    overflow-y: visible;
-    padding: 0;
+.featured-subtitle {
+  font-size: 1.125rem;
+  color: #6e6e73;
+  max-width: 600px;
+  margin: 0 auto;
 }
 
-/* Section footer — centred CTA */
-.section-footer {
-    display: flex;
-    justify-content: center;
-    margin-top: 2rem;
+.featured-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 20px;
 }
 
-/* Full-width wrapper that breaks out of .container */
-.featured-products-grid-wrapper {
-    width: 100%;
-    padding: 0 2rem;
-    box-sizing: border-box;
-    margin-bottom: 1.5rem;
-}
-
-/* ============================================
-   RESPONSIVE BREAKPOINTS
-   ============================================ */
-
-/* Tablet landscape: 2 columns */
 @media (max-width: 1024px) {
-    .featured-products-grid-wrapper .products-grid {
-        grid-template-columns: repeat(2, minmax(0, 1fr));
-        gap: 1.25rem;
-    }
+  .featured-grid { grid-template-columns: repeat(3, 1fr); }
 }
 
-/* Tablet portrait: 2 columns tighter */
 @media (max-width: 768px) {
-    .featured-products-grid-wrapper .products-grid {
-        grid-template-columns: repeat(2, minmax(0, 1fr));
-        gap: 1rem;
-    }
-
-    .section-subtitle {
-        font-size: 0.95rem;
-    }
-
-    .featured-products-grid-wrapper {
-        padding: 0 1rem;
-    }
+  .featured-grid { grid-template-columns: repeat(2, 1fr); }
 }
 
-/* Mobile: single column */
 @media (max-width: 480px) {
-    .featured-products-grid-wrapper .products-grid {
-        grid-template-columns: 1fr;
-        gap: 1rem;
-    }
+  .featured-grid { grid-template-columns: repeat(2, 1fr); gap: 12px; }
 }

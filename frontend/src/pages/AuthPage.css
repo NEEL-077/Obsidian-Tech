@@ -1,1 +1,26 @@
-/* AuthPage styles - Using Tailwind CSS */
+/* ===================================================================
+   AUTH PAGE — minimal, uses Tailwind inline classes in JSX
+   Just reset any conflicting legacy CSS
+   =================================================================== */
+
+/* The AuthPage JSX already uses Tailwind inline classes. This file
+   exists to provide any overrides needed for the Apple dark look. */
+
+/* Input fields in the auth form */
+.auth-input {
+  width: 100%;
+  padding: 12px 16px;
+  background: transparent;
+  border: 1px solid rgba(255,255,255,0.12);
+  border-radius: 10px;
+  color: #f5f5f7;
+  font-family: inherit;
+  font-size: 0.9375rem;
+  transition: border-color 180ms ease, background 180ms ease;
+  outline: none;
+}
+.auth-input::placeholder { color: rgba(255,255,255,0.25); }
+.auth-input:focus {
+  border-color: #0071e3;
+  background: rgba(0,113,227,0.04);
+}

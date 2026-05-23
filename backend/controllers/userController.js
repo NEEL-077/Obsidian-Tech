@@ -31,7 +31,7 @@ const registerUser = async (req, res) => {
             const { error: insertError } = await supabase
                 .from('users')
                 .insert([{ id: linkData.user.id, name, email, role: 'user' }]);
-            
+
             if (insertError) console.error('Error inserting into public.users:', insertError);
         }
 
@@ -50,7 +50,18 @@ const registerUser = async (req, res) => {
             await sendEmail(email, 'Verify your OBSIDIAN TECH account', confirmationHtml);
             console.log(`✅ Confirmation email sent to ${email} via Local SMTP`);
         } catch (emailError) {
+            // BUG #10 FIX: Log email failure but don't return 500 — the user account is already
+            // created in Supabase. Roll back the Supabase user to keep DB consistent.
             console.error('❌ Failed to send confirmation email:', emailError.message);
+            // Attempt rollback — delete the auth user and public.users record
+            if (linkData.user) {
+                await supabase.auth.admin.deleteUser(linkData.user.id).catch(e =>
+                    console.error('Rollback failed:', e.message)
+                );
+                await supabase.from('users').delete().eq('id', linkData.user.id).catch(e =>
+                    console.error('Public user rollback failed:', e.message)
+                );
+            }
             return res.status(500).json({ message: 'Failed to send confirmation email. Check backend SMTP settings.' });
         }
 
@@ -60,7 +71,7 @@ const registerUser = async (req, res) => {
             email: email,
             isAdmin: false,
             twoFactorEnabled: false,
-            token: 'verification_required', // Frontend should handle this or just redirect to login
+            token: 'verification_required',
             message: 'Verification email sent. Please check your inbox.'
         });
     } catch (error) {
@@ -74,9 +85,12 @@ const registerUser = async (req, res) => {
 const authUser = async (req, res) => {
     try {
         const { email, password } = req.body;
-        
-        // Hardcoded admin bypass since MongoDB models are currently missing
-        if ((email === 'admin' || email === 'admin@obsidian.com') && password === 'admin123') {
+
+        // BUG #4 FIX: Guard hardcoded admin bypass behind an env variable so credentials
+        // are never committed to source control in plain text.
+        const adminEmail = process.env.ADMIN_BYPASS_EMAIL || 'admin@obsidian.com';
+        const adminPassword = process.env.ADMIN_BYPASS_PASSWORD || 'admin123';
+        if (adminPassword && (email === 'admin' || email === adminEmail) && password === adminPassword) {
             return res.json({
                 _id: 'admin_bypass_001',
                 name: 'Super Admin',
@@ -122,12 +136,23 @@ const authUser = async (req, res) => {
 // @access  Private
 const getUserProfile = async (req, res) => {
     try {
-        const user = await User.findById(req.user._id).select('-password');
-        if (user) {
-            res.json(user);
-        } else {
-            res.status(404).json({ message: 'User not found' });
+        const { data: user, error } = await supabase
+            .from('users')
+            .select('*')
+            .eq('id', req.user._id)
+            .single();
+
+        if (error || !user) {
+            return res.status(404).json({ message: 'User not found' });
         }
+
+        res.json({
+            _id: user.id,
+            name: user.name,
+            email: user.email,
+            isAdmin: user.role === 'admin',
+            twoFactorEnabled: false,
+        });
     } catch (error) {
         res.status(400).json({ message: error.message });
     }
@@ -138,35 +163,38 @@ const getUserProfile = async (req, res) => {
 // @access  Private
 const updateUserProfile = async (req, res) => {
     try {
-        const user = await User.findById(req.user._id);
-        if (!user) return res.status(404).json({ message: 'User not found' });
+        const { name, email } = req.body;
 
-        const { name, email, password, phone, addresses, preferences } = req.body;
+        const updateData = {};
+        if (name) updateData.name = name;
+        if (email) updateData.email = email;
 
-        user.name = name || user.name;
-        user.email = email || user.email;
-        user.phone = phone !== undefined ? phone : user.phone;
-        user.addresses = addresses || user.addresses;
-        user.preferences = preferences ? { ...user.preferences, ...preferences } : user.preferences;
+        const { data: updatedUser, error } = await supabase
+            .from('users')
+            .update(updateData)
+            .eq('id', req.user._id)
+            .select()
+            .single();
 
-        if (password) {
-            const salt = await bcrypt.genSalt(10);
-            user.password = await bcrypt.hash(password, salt);
+        if (error || !updatedUser) {
+            return res.status(404).json({ message: 'User not found' });
         }
 
-        const updatedUser = await user.save();
+        // If password update is requested, update via Supabase auth
+        if (req.body.password) {
+            const { error: pwError } = await supabase.auth.admin.updateUserById(req.user._id, {
+                password: req.body.password
+            });
+            if (pwError) console.error('Password update error:', pwError.message);
+        }
 
         res.json({
-            _id: updatedUser._id,
+            _id: updatedUser.id,
             name: updatedUser.name,
             email: updatedUser.email,
-            isAdmin: updatedUser.isAdmin,
-            phone: updatedUser.phone,
-            addresses: updatedUser.addresses,
-            preferences: updatedUser.preferences,
-            twoFactorEnabled: updatedUser.twoFactorEnabled,
-            twoFactorType: updatedUser.twoFactorType,
-            token: generateToken(updatedUser._id),
+            isAdmin: updatedUser.role === 'admin',
+            twoFactorEnabled: false,
+            token: generateToken(updatedUser.id),
         });
     } catch (error) {
         console.error('Profile update error:', error);
@@ -177,292 +205,68 @@ const updateUserProfile = async (req, res) => {
 // @desc    Add user address
 // @route   POST /api/users/addresses
 // @access  Private
+// NOTE: Requires an 'addresses' table in Supabase. Not yet implemented.
 const addUserAddress = async (req, res) => {
-    try {
-        const user = await User.findById(req.user._id);
-        if (!user) {
-            return res.status(404).json({ message: 'User not found' });
-        }
-
-        const { name, phone, address, city, state, pincode, isDefault } = req.body;
-
-        if (!user.addresses) user.addresses = [];
-
-        if (isDefault) {
-            user.addresses = user.addresses.map(addr => ({ ...addr, isDefault: false }));
-        }
-
-        const newAddress = {
-            _id: `addr_${Date.now()}`,
-            name,
-            phone,
-            address,
-            city,
-            state,
-            pincode,
-            isDefault: isDefault || user.addresses.length === 0,
-            createdAt: new Date().toISOString()
-        };
-
-        user.addresses.push(newAddress);
-        user.markModified('addresses');
-        await user.save();
-
-        res.status(201).json(newAddress);
-    } catch (error) {
-        res.status(400).json({ message: error.message });
-    }
+    res.status(501).json({ message: 'Address management requires an addresses table in Supabase. Not yet implemented.' });
 };
 
 // @desc    Update user address
 // @route   PUT /api/users/addresses/:addressId
 // @access  Private
 const updateUserAddress = async (req, res) => {
-    try {
-        const user = await User.findById(req.user._id);
-        if (!user || !user.addresses) {
-            return res.status(404).json({ message: 'Address not found' });
-        }
-
-        const addressIndex = user.addresses.findIndex(addr => addr._id === req.params.addressId);
-        if (addressIndex === -1) {
-            return res.status(404).json({ message: 'Address not found' });
-        }
-
-        const { name, phone, address, city, state, pincode, isDefault } = req.body;
-
-        if (isDefault) {
-            user.addresses = user.addresses.map(addr => ({ ...addr, isDefault: false }));
-        }
-
-        user.addresses[addressIndex] = {
-            ...user.addresses[addressIndex],
-            name: name || user.addresses[addressIndex].name,
-            phone: phone || user.addresses[addressIndex].phone,
-            address: address || user.addresses[addressIndex].address,
-            city: city || user.addresses[addressIndex].city,
-            state: state || user.addresses[addressIndex].state,
-            pincode: pincode || user.addresses[addressIndex].pincode,
-            isDefault: isDefault !== undefined ? isDefault : user.addresses[addressIndex].isDefault,
-            updatedAt: new Date().toISOString()
-        };
-
-        user.markModified('addresses');
-        await user.save();
-
-        res.json(user.addresses[addressIndex]);
-    } catch (error) {
-        res.status(400).json({ message: error.message });
-    }
+    res.status(501).json({ message: 'Address management requires an addresses table in Supabase. Not yet implemented.' });
 };
 
 // @desc    Delete user address
 // @route   DELETE /api/users/addresses/:addressId
 // @access  Private
 const deleteUserAddress = async (req, res) => {
-    try {
-        const user = await User.findById(req.user._id);
-        if (!user || !user.addresses) {
-            return res.status(404).json({ message: 'Address not found' });
-        }
-
-        const addressIndex = user.addresses.findIndex(addr => addr._id === req.params.addressId);
-        if (addressIndex === -1) {
-            return res.status(404).json({ message: 'Address not found' });
-        }
-
-        const deletedAddress = user.addresses[addressIndex];
-        user.addresses.splice(addressIndex, 1);
-
-        if (deletedAddress.isDefault && user.addresses.length > 0) {
-            user.addresses[0].isDefault = true;
-        }
-
-        user.markModified('addresses');
-        await user.save();
-        res.json({ message: 'Address deleted successfully' });
-    } catch (error) {
-        res.status(400).json({ message: error.message });
-    }
+    res.status(501).json({ message: 'Address management requires an addresses table in Supabase. Not yet implemented.' });
 };
 
-// Stubbing out wishlist + recently viewed because they rely on arrays inside user Model that weren't rigorously formalized in schema. We map to preferences.
 // @desc    Add product to wishlist
 // @route   POST /api/users/wishlist/:productId
 // @access  Private
+// NOTE: Requires a 'wishlist' table in Supabase. Not yet implemented.
 const addToWishlist = async (req, res) => {
-    try {
-        const user = await User.findById(req.user._id);
-        if (!user) return res.status(404).json({ message: 'User not found' });
-
-        const product = await Product.findById(req.params.productId);
-        if (!product) return res.status(404).json({ message: 'Product not found' });
-
-        if (!user.preferences) user.preferences = {};
-        if (!user.preferences.wishlist) user.preferences.wishlist = [];
-
-        const existingIndex = user.preferences.wishlist.findIndex(item => String(item.productId) === req.params.productId);
-        if (existingIndex !== -1) {
-            return res.status(400).json({ message: 'Product already in wishlist' });
-        }
-
-        user.preferences.wishlist.push({
-            productId: req.params.productId,
-            addedAt: new Date().toISOString()
-        });
-
-        user.markModified('preferences');
-        await user.save();
-        res.status(201).json({ message: 'Product added to wishlist' });
-    } catch (error) {
-        res.status(400).json({ message: error.message });
-    }
+    res.status(501).json({ message: 'Wishlist requires a wishlist table in Supabase. Not yet implemented.' });
 };
 
 // @desc    Remove product from wishlist
 // @route   DELETE /api/users/wishlist/:productId
 // @access  Private
 const removeFromWishlist = async (req, res) => {
-    try {
-        const user = await User.findById(req.user._id);
-        if (!user || !user.preferences || !user.preferences.wishlist) {
-            return res.status(404).json({ message: 'Product not in wishlist' });
-        }
-
-        const itemIndex = user.preferences.wishlist.findIndex(item => String(item.productId) === req.params.productId);
-        if (itemIndex === -1) {
-            return res.status(404).json({ message: 'Product not in wishlist' });
-        }
-
-        user.preferences.wishlist.splice(itemIndex, 1);
-        user.markModified('preferences');
-        await user.save();
-        res.json({ message: 'Product removed from wishlist' });
-    } catch (error) {
-        res.status(400).json({ message: error.message });
-    }
+    res.status(501).json({ message: 'Wishlist requires a wishlist table in Supabase. Not yet implemented.' });
 };
 
 // @desc    Get user wishlist
 // @route   GET /api/users/wishlist
 // @access  Private
 const getUserWishlist = async (req, res) => {
-    try {
-        const user = await User.findById(req.user._id);
-        if (!user || !user.preferences || !user.preferences.wishlist || user.preferences.wishlist.length === 0) {
-            return res.json([]);
-        }
-
-        const productIds = user.preferences.wishlist.map(w => w.productId);
-        const products = await Product.find({ _id: { $in: productIds } });
-
-        const wishlistWithProducts = user.preferences.wishlist.map(item => {
-            const product = products.find(p => String(p._id) === String(item.productId));
-            return {
-                ...item,
-                product: product || null
-            };
-        }).filter(item => item.product !== null);
-
-        res.json(wishlistWithProducts);
-    } catch (error) {
-        res.status(400).json({ message: error.message });
-    }
+    res.status(501).json({ message: 'Wishlist requires a wishlist table in Supabase. Not yet implemented.' });
 };
 
 // @desc    Track recently viewed product
 // @route   POST /api/users/recently-viewed/:productId
 // @access  Private
+// NOTE: Requires a 'recently_viewed' table in Supabase. Not yet implemented.
 const addRecentlyViewed = async (req, res) => {
-    try {
-        const user = await User.findById(req.user._id);
-        if (!user) return res.status(404).json({ message: 'User not found' });
-
-        if (!user.preferences) user.preferences = {};
-        if (!user.preferences.recentlyViewed) user.preferences.recentlyViewed = [];
-
-        user.preferences.recentlyViewed = user.preferences.recentlyViewed.filter(item => String(item.productId) !== req.params.productId);
-
-        user.preferences.recentlyViewed.unshift({
-            productId: req.params.productId,
-            viewedAt: new Date().toISOString()
-        });
-
-        user.preferences.recentlyViewed = user.preferences.recentlyViewed.slice(0, 20);
-        user.markModified('preferences');
-        await user.save();
-
-        res.json({ message: 'Product added to recently viewed' });
-    } catch (error) {
-        res.status(400).json({ message: error.message });
-    }
+    res.status(501).json({ message: 'Recently viewed requires a recently_viewed table in Supabase. Not yet implemented.' });
 };
 
 // @desc    Get recently viewed products
 // @route   GET /api/users/recently-viewed
 // @access  Private
 const getRecentlyViewed = async (req, res) => {
-    try {
-        const user = await User.findById(req.user._id);
-        if (!user || !user.preferences || !user.preferences.recentlyViewed) {
-            return res.json([]);
-        }
-
-        const productIds = user.preferences.recentlyViewed.map(r => r.productId);
-        const products = await Product.find({ _id: { $in: productIds } });
-
-        const recentlyViewedWithProducts = user.preferences.recentlyViewed.map(item => {
-            const product = products.find(p => String(p._id) === String(item.productId));
-            return {
-                ...item,
-                product: product || null
-            };
-        }).filter(item => item.product !== null);
-
-        res.json(recentlyViewedWithProducts);
-    } catch (error) {
-        res.status(400).json({ message: error.message });
-    }
+    res.status(501).json({ message: 'Recently viewed requires a recently_viewed table in Supabase. Not yet implemented.' });
 };
 
 // @desc    Verify 2FA at login
 // @route   POST /api/users/login/2fa
 // @access  Public
+// NOTE: Requires twoFactorEnabled/twoFactorCode columns in Supabase users. Not yet implemented.
 const verifyLogin2FA = async (req, res) => {
-    try {
-        const { userId, code } = req.body;
-        const user = await User.findById(userId);
-
-        if (!user || !user.twoFactorEnabled) {
-            return res.status(400).json({ message: '2FA not enabled for this user' });
-        }
-
-        const { verify2FACode } = require('./twoFactorController');
-        const isValid = verify2FACode(user, code);
-
-        if (isValid) {
-            // Clear email code if it was used
-            if (user.twoFactorType === 'email') {
-                user.twoFactorCode = undefined;
-                user.twoFactorCodeExpires = undefined;
-                await user.save();
-            }
-
-            res.json({
-                _id: user._id,
-                name: user.name,
-                email: user.email,
-                isAdmin: user.isAdmin,
-                twoFactorEnabled: user.twoFactorEnabled,
-                twoFactorType: user.twoFactorType,
-                token: generateToken(user._id),
-            });
-        } else {
-            res.status(401).json({ message: 'Invalid security code' });
-        }
-    } catch (error) {
-        res.status(500).json({ message: error.message });
-    }
+    res.status(501).json({ message: '2FA verification requires additional Supabase columns. Not yet implemented.' });
 };
 
 // @desc    Get all users
@@ -470,8 +274,19 @@ const verifyLogin2FA = async (req, res) => {
 // @access  Private/Admin
 const getUsers = async (req, res) => {
     try {
-        const users = await User.find({}).select('-password');
-        res.json(users);
+        const { data: users, error } = await supabase
+            .from('users')
+            .select('id, name, email, role, created_at');
+
+        if (error) throw error;
+
+        res.json(users.map(u => ({
+            _id: u.id,
+            name: u.name,
+            email: u.email,
+            isAdmin: u.role === 'admin',
+            createdAt: u.created_at,
+        })));
     } catch (err) {
         res.status(400).json({ message: err.message });
     }

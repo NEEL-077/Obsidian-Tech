@@ -4,11 +4,11 @@ import API from '../api/axiosConfig';
 import './SpotlightSearch.css';
 
 const QUICK_LINKS = [
-    { name: 'Home', url: '/', icon: '🏠' },
-    { name: 'Brands', url: '/products', icon: '📱' },
-    { name: 'Cart', url: '/cart', icon: '🛒' },
-    { name: 'Profile', url: '/profile', icon: '👤' },
-    { name: 'Deals', url: '/deals', icon: '🔥' },
+    { name: 'Home', url: '/', icon: <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg> },
+    { name: 'Brands', url: '/products', icon: <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="5" y="2" width="14" height="20" rx="2" ry="2"/><line x1="12" y1="18" x2="12.01" y2="18"/></svg> },
+    { name: 'Cart', url: '/cart', icon: <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg> },
+    { name: 'Profile', url: '/profile', icon: <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg> },
+    { name: 'Deals', url: '/deals', icon: <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z"/></svg> },
 ];
 
 const SpotlightSearch = ({ isOpen, onClose }) => {
@@ -163,7 +163,7 @@ const SpotlightSearch = ({ isOpen, onClose }) => {
                                                 {product.image && product.image.startsWith('/') ? (
                                                     <img src={product.image} alt={product.name} />
                                                 ) : (
-                                                    <span>📱</span>
+                                                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#6e6e73" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><rect x="5" y="2" width="14" height="20" rx="2" ry="2"/><line x1="12" y1="18" x2="12.01" y2="18"/></svg>
                                                 )}
                                             </div>
                                             <div className="spotlight-result-info">

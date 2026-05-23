@@ -7,6 +7,7 @@ import HeroSection from './components/ui/hero-section';
 import StickyFooter from './components/ui/sticky-footer';
 import ProductsPage from './pages/ProductsPage';
 import BrandPage from './pages/BrandPage';
+import CategoryPage from './pages/CategoryPage';
 import ProductDetailPage from './pages/ProductDetailPage';
 import CartPage from './pages/CartPage';
 import CheckoutPage from './pages/CheckoutPage';
@@ -40,7 +41,7 @@ const HomePage = () => (
           {
             '@type': 'Organization',
             name: 'OBSIDIAN TECH',
-            url: 'http://localhost:5000',
+            url: import.meta.env.VITE_SITE_URL || 'http://localhost:5001',
 
             sameAs: [
               '#',
@@ -51,10 +52,10 @@ const HomePage = () => (
           {
             '@type': 'WebSite',
             name: 'OBSIDIAN TECH',
-            url: 'http://localhost:5000',
+            url: import.meta.env.VITE_SITE_URL || 'http://localhost:5001',
             potentialAction: {
               '@type': 'SearchAction',
-              target: 'http://localhost:5000/products?q={search_term_string}',
+              target: `${import.meta.env.VITE_SITE_URL || 'http://localhost:5001'}/products?q={search_term_string}`,
               'query-input': 'required name=search_term_string',
             },
           },
@@ -91,9 +92,12 @@ function App() {
                           <Navbar />
                           <main>
                             <Routes>
-                              <Route path="/" element={<PageTransition><HomePage /></PageTransition>} />
+                              {/* BUG #3 FIX: Removed outer <PageTransition> wrapper — HomePage already
+                                  defines its own <PageTransition> internally, causing double animation. */}
+                              <Route path="/" element={<HomePage />} />
                               <Route path="/products" element={<PageTransition><ProductsPage /></PageTransition>} />
                               <Route path="/brand/:brandName" element={<PageTransition><BrandPage /></PageTransition>} />
+                              <Route path="/category/:categoryName" element={<PageTransition><CategoryPage /></PageTransition>} />
                               <Route path="/product/:id" element={<PageTransition><ProductDetailPage /></PageTransition>} />
                               <Route path="/cart" element={<PageTransition><CartPage /></PageTransition>} />
                               <Route path="/checkout" element={<PageTransition><CheckoutPage /></PageTransition>} />

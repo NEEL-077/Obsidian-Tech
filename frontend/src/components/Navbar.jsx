@@ -1,38 +1,101 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { Link, useLocation, useNavigate } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { Link, useLocation } from 'react-router-dom';
 import { useCart } from '../context/CartContext';
 import { useAuth } from '../context/AuthContext';
-import { TubelightNavbar } from './ui/tubelight-navbar';
-import { Home, Package } from 'lucide-react';
 import SpotlightSearch from './SpotlightSearch';
 import './Navbar.css';
 
 const navItems = [
-    { name: 'Home', url: '/', icon: Home },
-    { name: 'Products', url: '/products', icon: Package },
+    { name: 'Store', url: '/' },
+    { name: 'Smartphone', url: '/category/phones' },
+    { name: 'Tablets', url: '/category/tablets' },
+    { name: 'Laptops', url: '/category/laptops' },
+    { name: 'Watch', url: '/category/watches' },
+    { name: 'Earpiece', url: '/category/earpiece' },
+    { name: 'TV & Home', url: '/category/tv-home' },
+    { name: 'Accessories', url: '/category/accessories' },
+    { name: 'Support', url: '/contact' }
 ];
+
+const MENU_CONTENT = {
+    'Store': {
+        groups: [
+            { title: 'Shop', links: ['Shop the Latest', 'Mac', 'iPad', 'iPhone', 'Apple Watch', 'Accessories'] },
+            { title: 'Quick Links', links: ['Find a Store', 'Order Status', 'Financing', 'Apple Trade In'] },
+            { title: 'Shop Special Stores', links: ['Education', 'Business'] }
+        ]
+    },
+    'Smartphone': {
+        groups: [
+            { title: 'Explore Phones', links: ['Explore All Phones', 'iPhone 16 Pro', 'iPhone 16', 'Galaxy S25 Ultra', 'Pixel 9 Pro'] },
+            { title: 'Shop Phones', links: ['Shop iPhone', 'Shop Samsung', 'Shop Google', 'Shop OnePlus'] },
+            { title: 'More from Phones', links: ['Phone Support', 'Care+', 'Trade In'] }
+        ]
+    },
+    'Tablets': {
+        groups: [
+            { title: 'Explore Tablets', links: ['Explore All Tablets', 'iPad Pro', 'iPad Air', 'Galaxy Tab S9'] },
+            { title: 'Shop Tablets', links: ['Shop iPad', 'Shop Samsung Tablets', 'Tablet Accessories'] },
+            { title: 'More from Tablets', links: ['Tablet Support', 'Apple Pencil', 'Keyboards'] }
+        ]
+    },
+    'Laptops': {
+        groups: [
+            { title: 'Explore Laptops', links: ['Explore All Laptops', 'MacBook Pro', 'MacBook Air', 'Galaxy Book'] },
+            { title: 'Shop Laptops', links: ['Shop Mac', 'Shop Samsung', 'Mac Accessories'] },
+            { title: 'More from Laptops', links: ['Mac Support', 'macOS', 'Continuity'] }
+        ]
+    },
+    'Watch': {
+        groups: [
+            { title: 'Explore Watches', links: ['Explore All Watches', 'Apple Watch Ultra 2', 'Apple Watch Series 9', 'Galaxy Watch 6'] },
+            { title: 'Shop Watches', links: ['Shop Apple Watch', 'Shop Samsung Watch', 'Watch Bands'] },
+            { title: 'More from Watches', links: ['Watch Support', 'watchOS', 'Fitness+'] }
+        ]
+    },
+    'Earpiece': {
+        groups: [
+            { title: 'Explore Earpieces', links: ['Explore All Earpieces', 'AirPods Pro 2', 'AirPods 3', 'AirPods Max', 'Galaxy Buds 2 Pro'] },
+            { title: 'Shop Earpieces', links: ['Shop AirPods', 'Shop Galaxy Buds', 'Accessories'] },
+            { title: 'More from Earpieces', links: ['Audio Support', 'Apple Music'] }
+        ]
+    },
+    'TV & Home': {
+        groups: [
+            { title: 'Explore TV & Home', links: ['Explore TV & Home', 'Apple TV 4K', 'HomePod', 'HomePod mini'] },
+            { title: 'Shop TV & Home', links: ['Shop Apple TV 4K', 'Shop HomePod', 'Shop HomePod mini'] },
+            { title: 'More from TV & Home', links: ['Apple TV Support', 'HomePod Support', 'Apple TV app', 'Apple TV+'] }
+        ]
+    },
+    'Accessories': {
+        groups: [
+            { title: 'Shop Accessories', links: ['Shop All Accessories', 'Mac', 'iPad', 'iPhone', 'Apple Watch'] },
+            { title: 'Explore Accessories', links: ['Made by Apple', 'Beats by Dr. Dre', 'AirTag'] }
+        ]
+    },
+    'Support': {
+        groups: [
+            { title: 'Explore Support', links: ['iPhone', 'Mac', 'iPad', 'Watch', 'AirPods', 'Music', 'TV'] },
+            { title: 'Get Help', links: ['Community', 'Check Coverage', 'Repair', 'Contact Us'] }
+        ]
+    }
+};
 
 const Navbar = () => {
     const location = useLocation();
-    const navigate = useNavigate();
     const { getCartCount } = useCart();
     const cartCount = getCartCount();
     const { user, logout } = useAuth();
 
     const [menuOpen, setMenuOpen] = useState(false);
-    const [scrolled, setScrolled] = useState(false);
     const [isSpotlightOpen, setIsSpotlightOpen] = useState(false);
-
-    // Scroll shrink effect
-    useEffect(() => {
-        const handleScroll = () => setScrolled(window.scrollY > 50);
-        window.addEventListener('scroll', handleScroll, { passive: true });
-        return () => window.removeEventListener('scroll', handleScroll);
-    }, []);
+    const [hoveredNav, setHoveredNav] = useState(null);
+    const [isHoveringFlyout, setIsHoveringFlyout] = useState(false);
 
     // Close menu on route change
     useEffect(() => {
         setMenuOpen(false);
+        setHoveredNav(null);
     }, [location.pathname]);
 
     // Global shortcut to open spotlight
@@ -47,110 +110,141 @@ const Navbar = () => {
         return () => window.removeEventListener('keydown', handleKeyDown);
     }, []);
 
-    const isActive = (path) =>
-        location.pathname === path ? 'nav-link active' : 'nav-link';
+    // Prevent scrolling when mobile menu is open
+    useEffect(() => {
+        if (menuOpen) {
+            document.body.style.overflow = 'hidden';
+        } else {
+            document.body.style.overflow = 'unset';
+        }
+        return () => { document.body.style.overflow = 'unset'; }
+    }, [menuOpen]);
+
+    const activeFlyout = isHoveringFlyout ? hoveredNav : hoveredNav;
 
     return (
         <>
-            <nav className={`navbar${scrolled ? ' navbar--scrolled' : ''}`}>
+            <div className={`nav-backdrop ${activeFlyout && !menuOpen ? 'nav-backdrop--active' : ''}`} />
+            
+            <nav className={`navbar ${activeFlyout ? 'navbar--flyout-open' : ''}`} onMouseLeave={() => setHoveredNav(null)}>
                 <div className="container">
-                    <div className="navbar-content">
-                        <div className="navbar-brand">
-                            <Link to="/" className="logo-link">
-
-                                <div className="brand-text">
-                                    <span className="brand-name">OBSIDIAN TECH</span>
-                                </div>
+                    <ul className="navbar-content">
+                        {/* Logo */}
+                        <li className="nav-item">
+                            <Link to="/" className="nav-link logo-link" onMouseEnter={() => setHoveredNav(null)}>
+                                OBSIDIAN
                             </Link>
-                        </div>
+                        </li>
 
-                        {/* Spotlight Search Trigger */}
-                        <div className="navbar-search spotlight-trigger-wrapper">
-                            <button
-                                className="spotlight-trigger-btn"
-                                onClick={() => setIsSpotlightOpen(true)}
-                                aria-label="Open search modal"
+                        {/* Desktop Links */}
+                        {navItems.map((item) => (
+                            <li 
+                                className="nav-item desktop-only" 
+                                key={item.name}
+                                onMouseEnter={() => setHoveredNav(item.name)}
                             >
-                                <span className="search-icon-left">
-                                    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                                        <circle cx="11" cy="11" r="8" />
-                                        <path d="m21 21-4.35-4.35" />
-                                    </svg>
-                                </span>
-                                <span className="spotlight-trigger-text">Search OBSIDIAN TECH...</span>
-                                <span className="spotlight-shortcut">
-                                    <kbd>⌘</kbd> <kbd>K</kbd>
-                                </span>
+                                <Link to={item.url} className={`nav-link ${activeFlyout === item.name ? 'nav-link--active' : ''}`}>
+                                    {item.name}
+                                </Link>
+                            </li>
+                        ))}
+
+                        {/* Search Icon */}
+                        <li className="nav-item">
+                            <button 
+                                className="icon-btn"
+                                onClick={() => setIsSpotlightOpen(true)}
+                                onMouseEnter={() => setHoveredNav(null)}
+                                aria-label="Search"
+                            >
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                    <circle cx="11" cy="11" r="8"></circle>
+                                    <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                                </svg>
                             </button>
-                        </div>
+                        </li>
 
-                        {/* ✨ Tubelight Navbar Pill — Desktop only */}
-                        <div className="navbar-links">
-                            <TubelightNavbar items={navItems} />
-                        </div>
-
-                        {/* Action Buttons */}
-                        <div className="navbar-actions">
-                            <Link to="/cart" className="icon-btn cart-btn" title="Cart" aria-label="Cart">
-                                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ flexShrink: 0 }}>
-                                    <circle cx="9" cy="21" r="1" />
-                                    <circle cx="20" cy="21" r="1" />
-                                    <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6" />
+                        {/* Cart Icon */}
+                        <li className="nav-item">
+                            <Link to="/cart" className="icon-btn cart-btn" aria-label="Cart" onMouseEnter={() => setHoveredNav(null)}>
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                    <path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"></path>
+                                    <line x1="3" y1="6" x2="21" y2="6"></line>
+                                    <path d="M16 10a4 4 0 0 1-8 0"></path>
                                 </svg>
                                 {cartCount > 0 && <span className="cart-badge">{cartCount}</span>}
                             </Link>
-                            {user ? (
-                                <div className="user-menu">
-                                    <Link to="/profile" className="user-name" style={{ textDecoration: 'none', color: 'inherit' }}>
-                                        Hi, {user.name ? user.name.split(' ')[0] : 'User'}
-                                    </Link>
-                                    <button onClick={logout} className="btn btn-outline btn-sm" style={{ marginLeft: '10px' }}>Logout</button>
-                                </div>
-                            ) : (
-                                <Link to="/auth" className="btn btn-primary btn-sm">Sign In</Link>
-                            )}
+                        </li>
 
-                            {/* Hamburger — mobile only */}
+                        {/* Profile Icon / Mobile Hamburger */}
+                        <li className="nav-item">
+                            <Link to={user ? "/profile" : "/auth"} className="icon-btn desktop-only" aria-label="Account" onMouseEnter={() => setHoveredNav(null)}>
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                                    <circle cx="12" cy="7" r="4"></circle>
+                                </svg>
+                            </Link>
+                            
                             <button
-                                className={`hamburger-btn${menuOpen ? ' open' : ''}`}
+                                className={`hamburger-btn ${menuOpen ? 'open' : ''}`}
                                 onClick={() => setMenuOpen(!menuOpen)}
                                 aria-label="Toggle menu"
-                                aria-expanded={menuOpen}
                             >
                                 <span></span>
                                 <span></span>
                                 <span></span>
                             </button>
-                        </div>
+                        </li>
+                    </ul>
+                </div>
+
+                {/* Desktop Flyout Mega Menu */}
+                <div 
+                    className={`nav-flyout ${activeFlyout ? 'nav-flyout--active' : ''}`}
+                    onMouseEnter={() => setIsHoveringFlyout(true)}
+                    onMouseLeave={() => {
+                        setIsHoveringFlyout(false);
+                        setHoveredNav(null);
+                    }}
+                >
+                    <div className="nav-flyout-content container">
+                        {activeFlyout && MENU_CONTENT[activeFlyout]?.groups.map((group, idx) => (
+                            <div key={idx} className="nav-flyout-group">
+                                <h4 className="nav-flyout-title">{group.title}</h4>
+                                <ul className="nav-flyout-links">
+                                    {group.links.map(link => (
+                                        <li key={link}><Link to="#" className="nav-flyout-link">{link}</Link></li>
+                                    ))}
+                                </ul>
+                            </div>
+                        ))}
                     </div>
                 </div>
             </nav>
 
-            {/* Mobile Menu Overlay */}
-            {menuOpen && <div className="mobile-overlay" onClick={() => setMenuOpen(false)} />}
-            <div className={`mobile-menu${menuOpen ? ' mobile-menu--open' : ''}`}>
-                <div className="mobile-menu-header">
-                    <div className="mobile-logo">
-
-                        <span>OBSIDIAN TECH</span>
-                    </div>
-                    <button className="mobile-close-btn" onClick={() => setMenuOpen(false)} aria-label="Close menu">✕</button>
-                </div>
+            {/* Mobile Dropdown Menu */}
+            <div className={`mobile-menu ${menuOpen ? 'mobile-menu--open' : ''}`}>
                 <nav className="mobile-nav">
-                    <Link to="/" className={isActive('/')}>🏠 Home</Link>
-                    <Link to="/products" className={isActive('/products')}>📦 Products</Link>
-                    <Link to="/deals" className={isActive('/deals')}>🔥 Deals</Link>
-                    <Link to="/cart" className={isActive('/cart')}>🛒 Cart {cartCount > 0 && `(${cartCount})`}</Link>
-                    {user ? (
-                        <>
-                            <Link to="/profile" className={isActive('/profile')}>👤 Profile</Link>
-                            <button onClick={logout} className="btn btn-outline" style={{ marginTop: '1rem', width: '100%' }}>Logout</button>
-                        </>
-                    ) : (
-                        <Link to="/auth" className="btn btn-primary" style={{ marginTop: '1rem', textAlign: 'center' }}>Sign In</Link>
+                    {navItems.map((item) => (
+                        <Link key={item.name} to={item.url} className="nav-link">
+                            {item.name}
+                        </Link>
+                    ))}
+                    <Link to={user ? "/profile" : "/auth"} className="nav-link">
+                        {user ? 'Account' : 'Sign In'}
+                    </Link>
+                    {user && (
+                        <button 
+                            className="nav-link" 
+                            style={{ background: 'none', border: 'none', textAlign: 'left', cursor: 'pointer', padding: '16px 0', borderBottom: '1px solid rgba(255,255,255,0.1)' }} 
+                            onClick={() => { logout(); setMenuOpen(false); }}
+                        >
+                            Sign Out
+                        </button>
                     )}
                 </nav>
             </div>
+
             <SpotlightSearch
                 isOpen={isSpotlightOpen}
                 onClose={() => setIsSpotlightOpen(false)}

@@ -4,22 +4,22 @@ import { fetchProducts } from '../api/productApi';
 import SEO from '../components/SEO';
 import './ProductsPage.css';
 
-const BRAND_META = {
-    Apple: { accent: '#66FCF1', bg: 'linear-gradient(135deg,#18181b 0%,#27272a 100%)', logo: '/logos/apple.png', tagline: 'Think Different' },
-    Samsung: { accent: '#66FCF1', bg: 'linear-gradient(135deg,#18181b 0%,#27272a 100%)', logo: '/logos/samsung.png', tagline: "Do What You Can't" },
-    OnePlus: { accent: '#66FCF1', bg: 'linear-gradient(135deg,#18181b 0%,#27272a 100%)', logo: '/logos/one-plus.png', tagline: 'Never Settle' },
-    Google: { accent: '#66FCF1', bg: 'linear-gradient(135deg,#18181b 0%,#27272a 100%)', logo: '/logos/google.png', tagline: 'Made by Google' },
-    Xiaomi: { accent: '#66FCF1', bg: 'linear-gradient(135deg,#18181b 0%,#27272a 100%)', logo: '/logos/xiaomi.png', tagline: 'Innovation for Everyone' },
-    Motorola: { accent: '#66FCF1', bg: 'linear-gradient(135deg,#18181b 0%,#27272a 100%)', logo: '/logos/MOTOROLA.png', tagline: 'Ready For Anything' },
-    Realme: { accent: '#66FCF1', bg: 'linear-gradient(135deg,#18181b 0%,#27272a 100%)', emoji: '🟡', tagline: 'Dare to Leap' },
-    Vivo: { accent: '#66FCF1', bg: 'linear-gradient(135deg,#18181b 0%,#27272a 100%)', emoji: '🔷', tagline: 'More Joy, More Life' },
-    OPPO: { accent: '#66FCF1', bg: 'linear-gradient(135deg,#18181b 0%,#27272a 100%)', emoji: '🔹', tagline: 'Inspiration Ahead' },
-    Nothing: { accent: '#66FCF1', bg: 'linear-gradient(135deg,#18181b 0%,#27272a 100%)', emoji: '⬜', tagline: 'The Truth in Design' },
+export const BRAND_META = {
+    Apple: { logo: '/logos/apple.png', tagline: 'Think Different' },
+    Samsung: { logo: '/logos/samsung.png', tagline: "Do What You Can't" },
+    OnePlus: { logo: '/logos/one-plus.png', tagline: 'Never Settle' },
+    Google: { logo: '/logos/google.png', tagline: 'Made by Google' },
+    Xiaomi: { logo: '/logos/xiaomi.png', tagline: 'Innovation for Everyone' },
+    Motorola: { logo: '/logos/MOTOROLA.png', tagline: 'Ready For Anything' },
+    Realme: { icon: <svg width="48" height="48" viewBox="0 0 24 24" fill="#ffd60a" stroke="none"><circle cx="12" cy="12" r="10"/></svg>, tagline: 'Dare to Leap' },
+    Vivo: { icon: <svg width="48" height="48" viewBox="0 0 24 24" fill="#2997ff" stroke="none"><polygon points="12 2 22 12 12 22 2 12 12 2"/></svg>, tagline: 'More Joy, More Life' },
+    OPPO: { icon: <svg width="48" height="48" viewBox="0 0 24 24" fill="#30d158" stroke="none"><path d="M12 2L2 22h20L12 2z"/></svg>, tagline: 'Inspiration Ahead' },
+    Nothing: { icon: <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#f5f5f7" strokeWidth="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/></svg>, tagline: 'The Truth in Design' },
 };
 
-const DEFAULT_META = { accent: '#0ea5e9', bg: 'linear-gradient(135deg,#0ea5e9 0%,#6366f1 100%)', emoji: '📱', tagline: 'Premium Smartphones' };
+export const DEFAULT_META = { icon: <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#6e6e73" strokeWidth="1.5"><rect x="5" y="2" width="14" height="20" rx="2" ry="2"/><line x1="12" y1="18" x2="12.01" y2="18"/></svg>, tagline: 'Premium Smartphones' };
 
-const getBrandMeta = (brand) => BRAND_META[brand] || DEFAULT_META;
+export const getBrandMeta = (brand) => BRAND_META[brand] || DEFAULT_META;
 
 const ProductsPage = () => {
     const [allProducts, setAllProducts] = useState([]);
@@ -40,29 +40,26 @@ const ProductsPage = () => {
         load();
     }, []);
 
-    // Build brand summaries: name, count, price range, sample image
+    // Build brand summaries: name, count, price range
     const brands = useMemo(() => {
         const map = new Map();
         allProducts.forEach(p => {
             const b = p.brand || 'Other';
             if (!map.has(b)) {
-                map.set(b, { name: b, count: 0, minPrice: Infinity, maxPrice: 0, sampleImage: null });
+                map.set(b, { name: b, count: 0, minPrice: Infinity, maxPrice: 0 });
             }
             const entry = map.get(b);
             entry.count++;
             if (p.price < entry.minPrice) entry.minPrice = p.price;
             if (p.price > entry.maxPrice) entry.maxPrice = p.price;
-            if (!entry.sampleImage && p.image && p.image.startsWith('/')) {
-                entry.sampleImage = p.image;
-            }
         });
         return Array.from(map.values()).sort((a, b) => b.count - a.count);
     }, [allProducts]);
 
     return (
-        <div className="products-page products-hub">
+        <div className="products-page">
             <SEO
-                title="Shop by Brand"
+                title="Shop by Brand | OBSIDIAN TECH"
                 description="Browse smartphones by brand — Apple, Samsung, OnePlus, Google and more. Find the perfect phone at OBSIDIAN TECH."
                 url="/products"
             />
@@ -81,10 +78,10 @@ const ProductsPage = () => {
                         <p>Loading brands…</p>
                     </div>
                 )}
-                {error && <div className="error-state"><p style={{ color: 'red' }}>{error}</p></div>}
+                {error && <div className="error-state"><p>{error}</p></div>}
 
                 {!loading && !error && (
-                    <div className="brand-card-grid">
+                    <div className="hub-grid">
                         {brands.map(brand => {
                             const meta = getBrandMeta(brand.name);
                             const slug = brand.name.toLowerCase().replace(/\s+/g, '-');
@@ -92,47 +89,30 @@ const ProductsPage = () => {
                                 <Link
                                     key={brand.name}
                                     to={`/brand/${slug}`}
-                                    className="brand-card"
-                                    style={{ '--brand-bg': meta.bg, '--brand-accent': meta.accent }}
+                                    className="hub-card"
                                 >
-                                    <div className="brand-card-bg"></div>
-
-                                    {/* Brand logo */}
-                                    <div className="brand-card-image">
-                                        {meta.logo ? (
-                                            <div className="brand-logo-wrap">
-                                                <img
-                                                    src={meta.logo}
-                                                    alt={`${brand.name} logo`}
-                                                    className="brand-logo-img"
-                                                />
-                                            </div>
-                                        ) : (
-                                            <span className="brand-card-emoji">{meta.emoji}</span>
-                                        )}
+                                    <div className="hub-card-info">
+                                        <div className="hub-card-title">{brand.name}</div>
+                                        <div className="hub-card-tagline">{meta.tagline}</div>
+                                        <div className="hub-card-stats">
+                                            {brand.count} models · From ₹{brand.minPrice.toLocaleString('en-IN')}
+                                        </div>
+                                        
+                                        <div className="hub-card-actions">
+                                            <button className="btn-explore">Explore</button>
+                                        </div>
                                     </div>
 
-                                    <div className="brand-card-body">
+                                    <div className="hub-card-image">
                                         {meta.logo ? (
-                                            <div className="brand-logo-sm">
-                                                <img src={meta.logo} alt={brand.name} />
-                                            </div>
+                                            <img
+                                                src={meta.logo}
+                                                alt={`${brand.name} logo`}
+                                                className="hub-logo-img"
+                                            />
                                         ) : (
-                                            <div className="brand-card-emoji-sm">{meta.emoji}</div>
+                                            <div className="hub-card-icon">{meta.icon}</div>
                                         )}
-                                        <h2 className="brand-card-name">{brand.name}</h2>
-                                        <p className="brand-card-tagline">{meta.tagline}</p>
-                                        <div className="brand-card-stats">
-                                            <span className="brand-stat">{brand.count} models</span>
-                                            <span className="brand-divider">·</span>
-                                            <span className="brand-stat">
-                                                from ₹{brand.minPrice.toLocaleString('en-IN')}
-                                            </span>
-                                        </div>
-                                        <div className="brand-card-cta">
-                                            Shop Now
-                                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M5 12h14M12 5l7 7-7 7" /></svg>
-                                        </div>
                                     </div>
                                 </Link>
                             );

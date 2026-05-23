@@ -2,6 +2,7 @@ const path = require('path');
 const fs = require('fs');
 
 const { sendEmail } = require('../utils/emailService');
+const supabase = require('../config/supabase');
 
 // Order Status Enum
 const ORDER_STATUS = {
@@ -550,42 +551,69 @@ const sendOrderStatusEmail = async (order, status) => {
 // Update order status and send email
 const updateOrderStatus = async (orderId, newStatus, options = {}) => {
   try {
-    const order = await Order.findById(orderId);
-    if (!order) {
+    // Fetch order + order_items + user info from Supabase
+    const { data: orderRow, error: fetchError } = await supabase
+      .from('orders')
+      .select(`*, order_items(*), users(name, email)`)
+      .eq('id', orderId)
+      .single();
+
+    if (fetchError || !orderRow) {
       return { success: false, error: 'Order not found' };
     }
 
-    const previousStatus = order.status;
+    const previousStatus = orderRow.order_status;
 
-    // Update order fields
-    order.status = newStatus;
-
-    if (options.trackingNumber) order.trackingNumber = options.trackingNumber;
-    if (options.carrier) order.carrier = options.carrier;
-    if (options.estimatedDelivery) order.estimatedDelivery = options.estimatedDelivery;
-    if (options.note) {
-      order.statusHistory = order.statusHistory || [];
-      order.statusHistory.push({
-        status: newStatus,
-        timestamp: new Date(),
-        note: options.note,
-      });
-    }
-
-    // Handle delivered status
+    // Build update payload
+    const updatePayload = { order_status: newStatus };
+    if (options.trackingNumber) updatePayload.tracking_number = options.trackingNumber;
+    if (options.carrier) updatePayload.carrier = options.carrier;
+    if (options.estimatedDelivery) updatePayload.estimated_delivery = options.estimatedDelivery;
     if (newStatus === ORDER_STATUS.DELIVERED) {
-      order.isDelivered = true;
-      order.deliveredAt = new Date();
+      updatePayload.is_delivered = true;
+      updatePayload.delivered_at = new Date().toISOString();
     }
 
-    await order.save();
+    const { data: updatedRow, error: updateError } = await supabase
+      .from('orders')
+      .update(updatePayload)
+      .eq('id', orderId)
+      .select()
+      .single();
+
+    if (updateError) throw updateError;
+
+    // Build a compatible order object for the email service
+    const order = {
+      _id: updatedRow.id,
+      userName: orderRow.users?.name || 'Customer',
+      userEmail: orderRow.users?.email,
+      totalPrice: updatedRow.total_price,
+      shippingPrice: 0,
+      taxPrice: 0,
+      orderItems: (orderRow.order_items || []).map(i => ({
+        name: i.name,
+        qty: i.qty,
+        price: i.price,
+        image: i.image_url,
+      })),
+      shippingAddress: updatedRow.shipping_address,
+      trackingNumber: updatedRow.tracking_number,
+      carrier: updatedRow.carrier,
+      estimatedDelivery: updatedRow.estimated_delivery,
+      deliveredAt: updatedRow.delivered_at,
+      createdAt: updatedRow.created_at,
+      emailNotifications: updatedRow.email_notifications || {},
+      // no-op save — email flags are not persisted in this implementation
+      save: async () => {},
+    };
 
     // Send email notification
     const emailResult = await sendOrderStatusEmail(order, newStatus);
 
     return {
       success: true,
-      order,
+      order: updatedRow,
       previousStatus,
       emailSent: emailResult.success,
       emailError: emailResult.error,
@@ -604,15 +632,20 @@ const sendOrderPlacedEmail = async (order) => {
 // Get email status for an order
 const getOrderEmailStatus = async (orderId) => {
   try {
-    const order = await Order.findById(orderId).select('emailNotifications status');
-    if (!order) {
+    const { data: order, error } = await supabase
+      .from('orders')
+      .select('order_status, email_notifications')
+      .eq('id', orderId)
+      .single();
+
+    if (error || !order) {
       return { success: false, error: 'Order not found' };
     }
 
     return {
       success: true,
-      orderStatus: order.status,
-      emailNotifications: order.emailNotifications || {},
+      orderStatus: order.order_status,
+      emailNotifications: order.email_notifications || {},
     };
   } catch (error) {
     return { success: false, error: error.message };
@@ -622,17 +655,39 @@ const getOrderEmailStatus = async (orderId) => {
 // Resend email for a specific status
 const resendOrderEmail = async (orderId, status) => {
   try {
-    const order = await Order.findById(orderId);
-    if (!order) {
+    const { data: orderRow, error: fetchError } = await supabase
+      .from('orders')
+      .select(`*, order_items(*), users(name, email)`)
+      .eq('id', orderId)
+      .single();
+
+    if (fetchError || !orderRow) {
       return { success: false, error: 'Order not found' };
     }
 
-    // Reset email sent flag
-    const emailType = STATUS_EMAIL_MAP[status];
-    if (emailType && order.emailNotifications?.[emailType]) {
-      order.emailNotifications[emailType].sent = false;
-      await order.save();
-    }
+    // Build a compatible order object for the email service
+    const order = {
+      _id: orderRow.id,
+      userName: orderRow.users?.name || 'Customer',
+      userEmail: orderRow.users?.email,
+      totalPrice: orderRow.total_price,
+      shippingPrice: 0,
+      taxPrice: 0,
+      orderItems: (orderRow.order_items || []).map(i => ({
+        name: i.name,
+        qty: i.qty,
+        price: i.price,
+        image: i.image_url,
+      })),
+      shippingAddress: orderRow.shipping_address,
+      trackingNumber: orderRow.tracking_number,
+      carrier: orderRow.carrier,
+      estimatedDelivery: orderRow.estimated_delivery,
+      deliveredAt: orderRow.delivered_at,
+      createdAt: orderRow.created_at,
+      emailNotifications: orderRow.email_notifications || {},
+      save: async () => {},
+    };
 
     // Send email again
     return await sendOrderStatusEmail(order, status);

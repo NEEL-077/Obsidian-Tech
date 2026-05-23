@@ -23,7 +23,23 @@ const startServer = async () => {
     initSocket(server);
 
     // Middleware
-    app.use(cors());
+    // BUG #11 FIX: Restrict CORS to known frontend origins only
+    const allowedOrigins = [
+      process.env.FRONTEND_URL,
+      'http://localhost:5173', // Vite dev server
+      'http://localhost:5001', // Backend serving built frontend
+    ].filter(Boolean);
+    app.use(cors({
+      origin: (origin, callback) => {
+        // Allow requests with no origin (e.g. Postman, mobile apps)
+        if (!origin || allowedOrigins.includes(origin)) {
+          callback(null, true);
+        } else {
+          callback(new Error(`CORS: origin '${origin}' not allowed`));
+        }
+      },
+      credentials: true,
+    }));
     app.use(express.json());
     app.use(express.urlencoded({ extended: true }));
     

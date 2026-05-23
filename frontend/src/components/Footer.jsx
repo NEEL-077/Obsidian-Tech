@@ -3,99 +3,96 @@ import { Link } from 'react-router-dom';
 import './Footer.css';
 
 const Footer = () => {
+    const year = new Date().getFullYear();
+
     return (
         <footer className="footer">
-            <div className="container">
-                <div className="footer-content">
-                    {/* Brand Section */}
-                    <div className="footer-section">
-                        <div className="footer-brand-container">
-
-                            <h3 className="footer-brand">
-                                OBSIDIAN TECH<span className="text-gradient"> SMART HUB</span>
-                            </h3>
-                        </div>
-                        <p className="footer-description">
-                            Your trusted destination for the latest smartphones with AI-powered recommendations at OBSIDIAN TECH.
-                        </p>
-                        <div className="footer-social">
-                            <a href="#" className="social-link" aria-label="Facebook">
-                                <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
-                                    <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z" />
-                                </svg>
-                            </a>
-                            <a href="#" className="social-link" aria-label="Twitter / X">
-                                <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
-                                    <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
-                                </svg>
-                            </a>
-                            <a href="#" className="social-link" aria-label="Instagram">
-                                <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
-                                    <path d="M12 0C8.74 0 8.333.015 7.053.072 5.775.132 4.905.333 4.14.63c-.789.306-1.459.717-2.126 1.384S.935 3.35.63 4.14C.333 4.905.131 5.775.072 7.053.012 8.333 0 8.74 0 12s.015 3.667.072 4.947c.06 1.277.261 2.148.558 2.913.306.788.717 1.459 1.384 2.126.667.666 1.336 1.079 2.126 1.384.766.296 1.636.499 2.913.558C8.333 23.988 8.74 24 12 24s3.667-.015 4.947-.072c1.277-.06 2.148-.262 2.913-.558.788-.306 1.459-.718 2.126-1.384.666-.667 1.079-1.335 1.384-2.126.296-.765.499-1.636.558-2.913.06-1.28.072-1.687.072-4.947s-.015-3.667-.072-4.947c-.06-1.277-.262-2.149-.558-2.913-.306-.789-.718-1.459-1.384-2.126C21.319 1.347 20.651.935 19.86.63c-.765-.297-1.636-.499-2.913-.558C15.667.012 15.26 0 12 0zm0 2.16c3.203 0 3.585.016 4.85.071 1.17.055 1.805.249 2.227.415.562.217.96.477 1.382.896.419.42.679.819.896 1.381.164.422.36 1.057.413 2.227.057 1.266.07 1.646.07 4.85s-.015 3.585-.074 4.85c-.061 1.17-.256 1.805-.421 2.227-.224.562-.479.96-.899 1.382-.419.419-.824.679-1.38.896-.42.164-1.065.36-2.235.413-1.274.057-1.649.07-4.859.07-3.211 0-3.586-.015-4.859-.074-1.171-.061-1.816-.256-2.236-.421-.569-.224-.96-.479-1.379-.899-.421-.419-.69-.824-.9-1.38-.165-.42-.359-1.065-.42-2.235-.045-1.26-.061-1.649-.061-4.844 0-3.196.016-3.586.061-4.861.061-1.17.255-1.814.42-2.234.21-.57.479-.96.9-1.381.419-.419.81-.689 1.379-.898.42-.166 1.051-.361 2.221-.421 1.275-.045 1.65-.06 4.859-.06zm0 3.678c-3.405 0-6.162 2.76-6.162 6.162 0 3.405 2.76 6.162 6.162 6.162 3.405 0 6.162-2.76 6.162-6.162 0-3.405-2.76-6.162-6.162-6.162zM12 16c-2.21 0-4-1.79-4-4s1.79-4 4-4 4 1.79 4 4-1.79 4-4 4zm7.846-10.405c0 .795-.646 1.44-1.44 1.44-.795 0-1.44-.646-1.44-1.44 0-.794.646-1.439 1.44-1.439.793-.001 1.44.645 1.44 1.439z" />
-                                </svg>
-                            </a>
-                            <a href="#" className="social-link" aria-label="YouTube">
-                                <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
-                                    <path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z" />
-                                </svg>
-                            </a>
-                        </div>
-                    </div>
-
-                    {/* Quick Links */}
-                    <div className="footer-section">
-                        <h4 className="footer-title">Quick Links</h4>
-                        <ul className="footer-links">
-                            <li><Link to="/">Home</Link></li>
-                            <li><Link to="/products">Products</Link></li>
-                            <li><Link to="/deals">Deals</Link></li>
-                            <li><Link to="/cart">Cart</Link></li>
-                        </ul>
-                    </div>
-
-                    {/* Customer Service */}
-                    <div className="footer-section">
-                        <h4 className="footer-title">Support</h4>
-                        <ul className="footer-links">
-                            <li><a href="#">Contact Us</a></li>
-                            <li><a href="#">Shipping Info</a></li>
-                            <li><a href="#">Returns Policy</a></li>
-                            <li><a href="#">FAQ</a></li>
-                        </ul>
-                    </div>
-
-                    {/* Newsletter */}
-                    <div className="footer-section">
-                        <h4 className="footer-title">Stay Updated</h4>
-                        <p className="footer-newsletter-text">
-                            Get exclusive deals and the latest smartphone news.
-                        </p>
-                        <div className="newsletter-form">
-                            <input
-                                type="email"
-                                placeholder="your@email.com"
-                                className="newsletter-input"
-                                aria-label="Email for newsletter"
-                            />
-                            <button className="btn btn-primary">Subscribe</button>
-                        </div>
+            <div className="footer-main">
+                {/* ── Brand Column ─────────────────────── */}
+                <div className="footer-brand">
+                    <div className="footer-logo">OBSIDIAN TECH</div>
+                    <p className="footer-tagline">
+                        AI-powered smartphone discovery.<br />
+                        Your perfect phone, found.
+                    </p>
+                    <div className="footer-social">
+                        {/* Twitter / X */}
+                        <a href="#" className="social-btn" aria-label="X / Twitter">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                                <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/>
+                            </svg>
+                        </a>
+                        {/* Instagram */}
+                        <a href="#" className="social-btn" aria-label="Instagram">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                                <path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z"/>
+                            </svg>
+                        </a>
+                        {/* YouTube */}
+                        <a href="#" className="social-btn" aria-label="YouTube">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                                <path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/>
+                            </svg>
+                        </a>
+                        {/* GitHub */}
+                        <a href="#" className="social-btn" aria-label="GitHub">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                                <path d="M12 0C5.374 0 0 5.373 0 12c0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23A11.509 11.509 0 0 1 12 5.803c1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576C20.566 21.797 24 17.3 24 12c0-6.627-5.373-12-12-12z"/>
+                            </svg>
+                        </a>
                     </div>
                 </div>
 
-                {/* Bottom Bar */}
-                <div className="footer-bottom">
-                    <p className="footer-copyright">
-                        © 2026 OBSIDIAN TECH. All rights reserved.
-                    </p>
-                    <div className="footer-payment">
-                        <span className="payment-label">We accept:</span>
-                        <div className="payment-pills">
-                            <span className="payment-pill">Visa</span>
-                            <span className="payment-pill">Mastercard</span>
-                            <span className="payment-pill">UPI</span>
-                            <span className="payment-pill">PayPal</span>
-                        </div>
+                {/* ── Links Grid ───────────────────────── */}
+                <div className="footer-links">
+                    <div className="footer-col">
+                        <h4 className="footer-col-title">Shop</h4>
+                        <ul>
+                            <li><Link to="/">Home</Link></li>
+                            <li><Link to="/products">All Brands</Link></li>
+                            <li><Link to="/products">Smartphones</Link></li>
+                            <li><Link to="/cart">Cart</Link></li>
+                        </ul>
                     </div>
+                    <div className="footer-col">
+                        <h4 className="footer-col-title">Brands</h4>
+                        <ul>
+                            <li><Link to="/brand/apple">Apple</Link></li>
+                            <li><Link to="/brand/samsung">Samsung</Link></li>
+                            <li><Link to="/brand/oneplus">OnePlus</Link></li>
+                            <li><Link to="/brand/google">Google</Link></li>
+                        </ul>
+                    </div>
+                    <div className="footer-col">
+                        <h4 className="footer-col-title">Support</h4>
+                        <ul>
+                            <li><Link to="/contact">Contact Us</Link></li>
+                            <li><a href="#">Shipping Info</a></li>
+                            <li><a href="#">Returns</a></li>
+                            <li><a href="#">FAQ</a></li>
+                        </ul>
+                    </div>
+                    <div className="footer-col">
+                        <h4 className="footer-col-title">Company</h4>
+                        <ul>
+                            <li><Link to="/about">About</Link></li>
+                            <li><a href="#">Careers</a></li>
+                            <li><a href="#">Press</a></li>
+                            <li><a href="#">Blog</a></li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+            {/* ── Bottom Bar ───────────────────────────── */}
+            <div className="footer-bottom">
+                <p className="footer-copy">
+                    Copyright © {year} OBSIDIAN TECH. All rights reserved.
+                </p>
+                <div className="footer-legal">
+                    <a href="#">Privacy Policy</a>
+                    <a href="#">Terms of Use</a>
+                    <a href="#">Cookie Settings</a>
                 </div>
             </div>
         </footer>

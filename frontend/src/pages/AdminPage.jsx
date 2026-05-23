@@ -8,7 +8,7 @@ const ORDER_STATUSES = [
   { value: 'Confirmed', label: '✅ Confirmed', color: '#10b981', bg: '#d1fae5' },
   { value: 'Processing', label: '⚙️ Processing', color: '#3b82f6', bg: '#dbeafe' },
   { value: 'Shipped', label: '🚚 Shipped', color: '#8b5cf6', bg: '#ede9fe' },
-  { value: 'Out for Delivery', label: '📦 Out for Delivery', color: '#f97316', bg: '#ffedd5' },
+  { value: 'Out for Delivery', label: 'Out for Delivery', color: '#f97316', bg: '#ffedd5' },
   { value: 'Delivered', label: '🎉 Delivered', color: '#22c55e', bg: '#dcfce7' },
   { value: 'Cancelled', label: '❌ Cancelled', color: '#ef4444', bg: '#fee2e2' },
   { value: 'Returned', label: '↩️ Returned', color: '#ec4899', bg: '#fce7f3' },
@@ -266,6 +266,17 @@ const AdminPage = () => {
   const [inventoryEdits, setInventoryEdits] = useState({});
   const [imageUpload, setImageUpload] = useState({ uploading: false, preview: '', error: '' });
 
+  const [isCategoryOpen, setIsCategoryOpen] = useState(false);
+  const CATEGORIES = [
+    { id: 'phones', name: 'Phones' },
+    { id: 'tablets', name: 'Tablets' },
+    { id: 'laptops', name: 'Laptops' },
+    { id: 'watches', name: 'Watches' },
+    { id: 'earpieces', name: 'Earpieces' },
+    { id: 'tv-home', name: 'TV & Home' },
+    { id: 'accessories', name: 'Accessories' }
+  ];
+
   const handleImageUpload = async (file) => {
     if (!file) return;
     if (!file.type.startsWith('image/')) {
@@ -412,7 +423,7 @@ const AdminPage = () => {
 
       // Special notification for new orders
       socket.on('new_order_placed', (data) => {
-        console.log('🔥 New order placed!', data.orderId);
+        console.log('New order placed!', data.orderId);
         // We could show a toast here if we had a toast library
       });
 
@@ -626,7 +637,7 @@ const AdminPage = () => {
 
           <form onSubmit={handleLogin}>
             <div className="form-group">
-              <label>Email:</label>
+              <label>User ID:</label>
               <input
                 type="text"
                 value={loginData.email}
@@ -668,56 +679,56 @@ const AdminPage = () => {
             className={activeTab === 'dashboard' ? 'nav-item active' : 'nav-item'}
             onClick={() => setActiveTab('dashboard')}
           >
-            <span className="nav-icon">📊</span>
+            <span className="nav-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg></span>
             Dashboard
           </button>
           <button
             className={activeTab === 'products' ? 'nav-item active' : 'nav-item'}
             onClick={() => setActiveTab('products')}
           >
-            <span className="nav-icon">📱</span>
+            <span className="nav-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="5" y="2" width="14" height="20" rx="2" ry="2"/><line x1="12" y1="18" x2="12.01" y2="18"/></svg></span>
             Products
           </button>
           <button
             className={activeTab === 'inventory' ? 'nav-item active' : 'nav-item'}
             onClick={() => setActiveTab('inventory')}
           >
-            <span className="nav-icon">📦</span>
+            <span className="nav-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="16.5" y1="9.4" x2="7.5" y2="4.21"/><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg></span>
             Inventory
           </button>
           <button
             className={activeTab === 'users' ? 'nav-item active' : 'nav-item'}
             onClick={() => setActiveTab('users')}
           >
-            <span className="nav-icon">👥</span>
+            <span className="nav-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></span>
             Users
           </button>
           <button
             className={activeTab === 'orders' ? 'nav-item active' : 'nav-item'}
             onClick={() => setActiveTab('orders')}
           >
-            <span className="nav-icon">🛒</span>
+            <span className="nav-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg></span>
             Orders
           </button>
           <button
             className={activeTab === 'coupons' ? 'nav-item active' : 'nav-item'}
             onClick={() => setActiveTab('coupons')}
           >
-            <span className="nav-icon">🎟️</span>
+            <span className="nav-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/></svg></span>
             Coupons
           </button>
         </nav>
 
         <div className="admin-user">
           <div className="user-info">
-            <span className="user-avatar">👤</span>
+            <span className="user-avatar"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></span>
             <div>
               <div className="user-name">administrator</div>
               <div className="user-role">super admin</div>
             </div>
           </div>
           <button onClick={handleLogout} className="logout-btn">
-            <span>🚪</span> Logout
+            <span><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg></span> Logout
           </button>
         </div>
       </div>
@@ -761,21 +772,21 @@ const AdminPage = () => {
             <div className="dashboard">
               <div className="stats-overview">
                 <div className="stat-card users">
-                  <div className="stat-icon">👥</div>
+                  <div className="stat-icon"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></div>
                   <div className="stat-info">
                     <h3>{stats.totalUsers || 0}</h3>
                     <p>Total Users</p>
                   </div>
                 </div>
                 <div className="stat-card products">
-                  <div className="stat-icon">📱</div>
+                  <div className="stat-icon"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="5" y="2" width="14" height="20" rx="2" ry="2"/><line x1="12" y1="18" x2="12.01" y2="18"/></svg></div>
                   <div className="stat-info">
                     <h3>{stats.totalProducts || 0}</h3>
                     <p>Total Products</p>
                   </div>
                 </div>
                 <div className="stat-card orders">
-                  <div className="stat-icon">🛒</div>
+                  <div className="stat-icon"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg></div>
                   <div className="stat-info">
                     <h3>{stats.totalOrders || 0}</h3>
                     <p>Total Orders</p>
@@ -867,6 +878,15 @@ const AdminPage = () => {
                 <form onSubmit={handleProductSubmit}>
                   <div className="form-row">
                     <div className="form-group">
+                      <label>Brand Name:</label>
+                      <input
+                        type="text"
+                        value={productForm.brand}
+                        onChange={(e) => setProductForm({ ...productForm, brand: e.target.value })}
+                        required
+                      />
+                    </div>
+                    <div className="form-group">
                       <label>Product Name:</label>
                       <input
                         type="text"
@@ -875,29 +895,20 @@ const AdminPage = () => {
                         required
                       />
                     </div>
-                    <div className="form-group">
-                      <label>Brand:</label>
-                      <input
-                        type="text"
-                        value={productForm.brand}
-                        onChange={(e) => setProductForm({ ...productForm, brand: e.target.value })}
-                        required
-                      />
-                    </div>
                   </div>
 
                   <div className="form-row">
                     <div className="form-group">
-                      <label>Price:</label>
+                      <label>Series of Product:</label>
                       <input
-                        type="number"
-                        value={productForm.price}
-                        onChange={(e) => setProductForm({ ...productForm, price: e.target.value })}
-                        required
+                        type="text"
+                        value={productForm.series || ''}
+                        onChange={(e) => setProductForm({ ...productForm, series: e.target.value })}
+                        placeholder="e.g. Pro, Max, Ultra"
                       />
                     </div>
                     <div className="form-group">
-                      <label>Original Price:</label>
+                      <label>Original Price (MRP):</label>
                       <input
                         type="number"
                         value={productForm.originalPrice}
@@ -908,15 +919,112 @@ const AdminPage = () => {
 
                   <div className="form-row">
                     <div className="form-group">
-                      <label>Category:</label>
-                      <select
-                        value={productForm.category}
-                        onChange={(e) => setProductForm({ ...productForm, category: e.target.value })}
-                      >
-                        <option value="phones">Phones</option>
-                        <option value="accessories">Accessories</option>
-                      </select>
+                      <label>Discount Period:</label>
+                      <input
+                        type="text"
+                        value={productForm.discountPeriod || ''}
+                        onChange={(e) => setProductForm({ ...productForm, discountPeriod: e.target.value })}
+                        placeholder="e.g. 7 Days"
+                      />
                     </div>
+                    <div className="form-group">
+                      <label>Price:</label>
+                      <input
+                        type="number"
+                        value={productForm.price}
+                        onChange={(e) => setProductForm({ ...productForm, price: e.target.value })}
+                        required
+                      />
+                    </div>
+                  </div>
+
+                  <div className="form-row">
+                    <div className="form-group">
+                      <label>Discount Percentage (%):</label>
+                      <input
+                        type="number"
+                        value={productForm.discountPercentage || ''}
+                        onChange={(e) => setProductForm({ ...productForm, discountPercentage: e.target.value })}
+                        placeholder="e.g. 15"
+                      />
+                    </div>
+                    <div className="form-group">
+                      <label>Category:</label>
+                      <div style={{ position: 'relative' }}>
+                        <div
+                          onClick={() => setIsCategoryOpen(!isCategoryOpen)}
+                          style={{
+                            width: '100%', padding: '14px 16px', background: 'rgba(255,255,255,0.04)',
+                            border: `1px solid ${isCategoryOpen ? '#0071e3' : 'rgba(255,255,255,0.1)'}`,
+                            borderRadius: '20px', color: '#f5f5f7', fontSize: '1rem',
+                            cursor: 'pointer', display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                            boxSizing: 'border-box'
+                          }}
+                        >
+                          {CATEGORIES.find(c => c.id === productForm.category)?.name || 'Select Category'}
+                          <span style={{ fontSize: '10px', transform: isCategoryOpen ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s' }}>▼</span>
+                        </div>
+                        {isCategoryOpen && (
+                          <div
+                            style={{
+                              position: 'absolute', top: '100%', left: 0, right: 0, marginTop: '8px',
+                              background: '#1c1c1e', border: '1px solid rgba(255,255,255,0.1)',
+                              borderRadius: '20px', overflow: 'hidden', zIndex: 10,
+                              boxShadow: '0 10px 30px rgba(0,0,0,0.5)'
+                            }}
+                          >
+                            {CATEGORIES.map(cat => (
+                              <div
+                                key={cat.id}
+                                onClick={() => {
+                                  setProductForm({ ...productForm, category: cat.id });
+                                  setIsCategoryOpen(false);
+                                }}
+                                style={{
+                                  padding: '12px 16px', cursor: 'pointer',
+                                  background: productForm.category === cat.id ? 'rgba(0,113,227,0.15)' : 'transparent',
+                                  color: productForm.category === cat.id ? '#0071e3' : '#f5f5f7',
+                                  transition: 'background 0.2s',
+                                  fontSize: '0.95rem'
+                                }}
+                                onMouseEnter={e => {
+                                  if (productForm.category !== cat.id) e.currentTarget.style.background = 'rgba(255,255,255,0.08)';
+                                }}
+                                onMouseLeave={e => {
+                                  if (productForm.category !== cat.id) e.currentTarget.style.background = 'transparent';
+                                }}
+                              >
+                                {cat.name}
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="form-row">
+                    <div className="form-group">
+                      <label>Base Storage:</label>
+                      <input
+                        type="text"
+                        value={productForm.baseStorage || ''}
+                        onChange={(e) => setProductForm({ ...productForm, baseStorage: e.target.value })}
+                        placeholder="e.g. 256GB"
+                      />
+                    </div>
+                    <div className="form-group">
+                      <label>RAM:</label>
+                      <input
+                        type="text"
+                        value={productForm.ram || ''}
+                        onChange={(e) => setProductForm({ ...productForm, ram: e.target.value })}
+                        placeholder="e.g. 8GB"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="form-row">
                     <div className="form-group">
                       <label>Initial Stock:</label>
                       <input
@@ -1005,35 +1113,13 @@ const AdminPage = () => {
                     />
                   </div>
 
-                  <button type="submit" disabled={loading}>
+                  <button type="submit" className="submit-btn" disabled={loading}>
                     {loading ? 'Adding...' : 'Add Product'}
                   </button>
                 </form>
               </div>
 
-              <div className="products-list">
-                <h3>Existing Products</h3>
-                <div className="products-grid">
-                  {products && products.length > 0 ? (
-                    products.map(product => (
-                      <div key={product._id} className="product-card">
-                        <img src={product.image} alt={product.name} />
-                        <h4>{product.name}</h4>
-                        <p>{product.brand}</p>
-                        <p>₹{product.price}</p>
-                        <button
-                          onClick={() => deleteProduct(product._id)}
-                          className="delete-btn"
-                        >
-                          Delete
-                        </button>
-                      </div>
-                    ))
-                  ) : (
-                    <div className="no-data">No products found</div>
-                  )}
-                </div>
-              </div>
+
             </div>
           )}
 
@@ -1061,11 +1147,11 @@ const AdminPage = () => {
                   <thead>
                     <tr>
                       <th>Product</th>
-                      <th>Brand</th>
-                      <th>Price</th>
+                      <th className="text-center">Brand</th>
+                      <th className="text-center">Price</th>
                       <th className="text-center">Stock Level</th>
                       <th>Status</th>
-                      <th className="text-right">Actions</th>
+                      <th style={{ textAlign: 'right' }}>Actions</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -1083,10 +1169,10 @@ const AdminPage = () => {
                               <span className="font-medium product-name-cell">{product.name}</span>
                             </div>
                           </td>
-                          <td>
+                          <td className="text-center">
                             <span className="brand-badge">{product.brand}</span>
                           </td>
-                          <td className="price-cell">₹{product.price.toLocaleString('en-IN')}</td>
+                          <td className="price-cell text-center">₹{product.price.toLocaleString('en-IN')}</td>
                           <td className="text-center">
                             <div className={`stock-control-pill ${isEdited ? 'editing' : ''}`}>
                               <button
@@ -1116,14 +1202,23 @@ const AdminPage = () => {
                               {product.countInStock > 0 ? 'In Stock' : 'Out of Stock'}
                             </span>
                           </td>
-                          <td className="text-right">
-                            <button
-                              className={`btn-save-stock ${isEdited ? 'btn-save-stock-active' : ''}`}
-                              onClick={() => handleUpdateStock(product._id, product)}
-                              disabled={!isEdited || loading}
-                            >
-                              {isEdited ? (loading ? '...' : 'Save Changes') : 'Up to date'}
-                            </button>
+                          <td>
+                            <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end', alignItems: 'center' }}>
+                              <button
+                                className={`btn-save-stock ${isEdited ? 'btn-save-stock-active' : ''}`}
+                                onClick={() => handleUpdateStock(product._id, product)}
+                                disabled={!isEdited || loading}
+                              >
+                                {isEdited ? (loading ? '...' : 'Save Changes') : 'Up to date'}
+                              </button>
+                              <button
+                                className="action-btn delete"
+                                onClick={() => deleteProduct(product._id)}
+                                title="Delete Product"
+                              >
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></svg>
+                              </button>
+                            </div>
                           </td>
                         </tr>
                       );
